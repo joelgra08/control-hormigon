@@ -24,6 +24,7 @@ const state = {
   lineasForm: [],   // líneas que se están armando/editando en el formulario actual
   editingLineaIdx: null, // índice dentro de lineasForm que se está editando (o null = nueva)
   lineasHierroForm: [],       // ítems que se están armando/editando para el pedido de hierro actual
+  facturasHierroForm: [],     // facturas ya subidas que va a quedar con el pedido actual (sin contar las que se agreguen recién al guardar)
   editingLineaHierroIdx: null, // índice dentro de lineasHierroForm que se está editando (o null = nuevo)
   tarjetaFecha: todayISO(),
   resumenMes: new Date().toISOString().slice(0, 7),
@@ -1128,8 +1129,45 @@ function resetHierroForm() {
   renderLineasHierroFormTable();
   $("#btnGuardarHierro").textContent = "Guardar pedido";
   $("#btnCancelarHierro").style.display = "none";
-  $("#hierroFacturaActual").textContent = "";
+  state.facturasHierroForm = [];
+  renderFacturasHierroForm();
   $("#formHierroTitulo").textContent = "Nuevo pedido de hierro";
+}
+
+// Un pedido viejo (de antes de poder tener varias facturas) guardaba una
+// sola en facturaPath/facturaNombre/facturaTipo. Esto lo junta con la
+// lista nueva para que se vea y se use igual no importa cuándo se cargó.
+function facturasDePedido(p) {
+  if (!p) return [];
+  if (Array.isArray(p.facturas) && p.facturas.length > 0) return p.facturas;
+  if (p.facturaPath) return [{ path: p.facturaPath, nombre: p.facturaNombre || "Factura", tipo: p.facturaTipo || "" }];
+  return [];
+}
+
+// Dibuja, dentro del formulario, la lista de facturas que va a quedar
+// guardada con el pedido (las que ya estaban + las nuevas se agregan al
+// guardar), cada una con su botón para sacarla antes de guardar.
+function renderFacturasHierroForm() {
+  const cont = $("#hierroFacturaActual");
+  cont.innerHTML = "";
+  if (state.facturasHierroForm.length === 0) {
+    cont.appendChild(document.createTextNode("Sin facturas adjuntas todavía."));
+    return;
+  }
+  state.facturasHierroForm.forEach((f, idx) => {
+    const fila = el("div", { class: "row", style: "align-items:center;gap:6px;margin-top:4px" });
+    fila.appendChild(document.createTextNode(`📎 ${f.nombre}`));
+    const btnVer = el("button", { type: "button", class: "ghost" }, "Ver");
+    btnVer.addEventListener("click", () => abrirFactura(f.path));
+    const btnQuitar = el("button", { type: "button", class: "ghost danger" }, "✕");
+    btnQuitar.addEventListener("click", () => {
+      state.facturasHierroForm.splice(idx, 1);
+      renderFacturasHierroForm();
+    });
+    fila.appendChild(btnVer);
+    fila.appendChild(btnQuitar);
+    cont.appendChild(fila);
+  });
 }
 
 async function onSubmitHierro(e) {
@@ -1149,24 +1187,24 @@ async function onSubmitHierro(e) {
     fecha: get("hierro_fecha"),
     proveedor: get("hierro_proveedor"),
     observaciones: get("hierro_observaciones"),
-    facturaPath: existente ? existente.facturaPath || null : null,
-    facturaNombre: existente ? existente.facturaNombre || "" : "",
-    facturaTipo: existente ? existente.facturaTipo || "" : "",
   };
 
+  // Facturas que ya estaban (menos las que se hayan sacado con "✕") +
+  // las que se eligieron recién en el input de archivos.
+  const facturasFinal = [...state.facturasHierroForm];
   const fileInput = $("#hierro_factura");
-  if (fileInput.files && fileInput.files[0]) {
-    const file = fileInput.files[0];
-    const path = `${state.obraId}/${pedidoId}/${Date.now()}_${file.name}`;
-    const { error: upErr } = await supabaseClient.storage.from("facturas").upload(path, file, { upsert: true });
-    if (upErr) {
-      toast("No se pudo subir la factura: " + upErr.message, "error");
-    } else {
-      pedido.facturaPath = path;
-      pedido.facturaNombre = file.name;
-      pedido.facturaTipo = file.type || "";
+  if (fileInput.files && fileInput.files.length > 0) {
+    for (const file of fileInput.files) {
+      const path = `${state.obraId}/${pedidoId}/${Date.now()}_${file.name}`;
+      const { error: upErr } = await supabaseClient.storage.from("facturas").upload(path, file, { upsert: true });
+      if (upErr) {
+        toast(`No se pudo subir "${file.name}": ${upErr.message}`, "error");
+      } else {
+        facturasFinal.push({ path, nombre: file.name, tipo: file.type || "" });
+      }
     }
   }
+  pedido.facturas = facturasFinal;
 
   await DB.put("pedidosHierro", pedido);
 
@@ -1197,7 +1235,8 @@ function editarHierro(pedidoId) {
   form.hierro_fecha.value = p.fecha;
   form.hierro_proveedor.value = p.proveedor || "";
   form.hierro_observaciones.value = p.observaciones || "";
-  $("#hierroFacturaActual").textContent = p.facturaNombre ? `Factura actual: ${p.facturaNombre} (si subís un archivo nuevo, la reemplaza)` : "Sin factura adjunta todavía.";
+  state.facturasHierroForm = facturasDePedido(p).map((f) => ({ ...f }));
+  renderFacturasHierroForm();
   $("#formHierroTitulo").textContent = "Editar pedido de hierro";
   $("#btnGuardarHierro").textContent = "Actualizar pedido";
   $("#btnCancelarHierro").style.display = "inline-block";
@@ -1218,10 +1257,9 @@ async function borrarHierro(pedidoId) {
   toast("Pedido borrado", "ok");
 }
 
-async function verFacturaHierro(id) {
-  const p = byId(state.pedidosHierro, id);
-  if (!p || !p.facturaPath) return;
-  const { data, error } = await supabaseClient.storage.from("facturas").createSignedUrl(p.facturaPath, 120);
+async function abrirFactura(path) {
+  if (!path) return;
+  const { data, error } = await supabaseClient.storage.from("facturas").createSignedUrl(path, 120);
   if (error || !data) { toast("No se pudo abrir la factura", "error"); return; }
   window.open(data.signedUrl, "_blank");
 }
@@ -1259,10 +1297,13 @@ function renderHierro() {
     tr.appendChild(el("td", {}, p.proveedor || "-"));
     tr.appendChild(el("td", { style: "white-space:normal" }, resumenItemsHierro(p.id)));
     const tdFactura = el("td");
-    if (p.facturaPath) {
-      const btnVer = el("button", { class: "ghost", title: "Ver / descargar factura" }, "📎 Ver");
-      btnVer.addEventListener("click", () => verFacturaHierro(p.id));
-      tdFactura.appendChild(btnVer);
+    const facturas = facturasDePedido(p);
+    if (facturas.length > 0) {
+      facturas.forEach((f, idx) => {
+        const btnVer = el("button", { class: "ghost", title: f.nombre, style: "margin:2px" }, facturas.length > 1 ? `📎 ${idx + 1}` : "📎 Ver");
+        btnVer.addEventListener("click", () => abrirFactura(f.path));
+        tdFactura.appendChild(btnVer);
+      });
     } else {
       tdFactura.appendChild(document.createTextNode("-"));
     }
