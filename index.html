@@ -645,6 +645,20 @@
 
 </div><!-- /#app -->
 
+<!-- Recordatorio semanal de copia de seguridad: no se puede cerrar hasta
+     descargar el JSON. Vive afuera de #app para que le salga a cualquier
+     usuario, sin importar su rol ni en qué pestaña esté. -->
+<div id="backupReminderOverlay" class="login-overlay" style="display:none;z-index:1100">
+  <div class="login-box" style="max-width:420px">
+    <h1>Recordatorio: copia de seguridad</h1>
+    <p class="hint" style="text-align:center">
+      Hace una semana que no descargás una copia de seguridad (JSON) de los datos.
+      Es tu respaldo extra por si hiciera falta recuperar algo — descargala para poder seguir usando la app.
+    </p>
+    <button type="button" id="btnBackupReminderDescargar" class="primary" style="width:100%">⬇ Descargar copia de seguridad (JSON)</button>
+  </div>
+</div>
+
 <script src="supabase.umd.js"></script>
 <script src="supabase-config.js"></script>
 <script src="xlsx.full.min.js"></script>

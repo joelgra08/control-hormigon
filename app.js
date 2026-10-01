@@ -354,6 +354,7 @@ async function continuarInicioLuegoDeLogin() {
       bindTabs();
       bindGlobalHandlers();
       aplicarPermisosUI();
+      verificarRecordatorioBackup();
       return;
     }
   }
@@ -366,6 +367,21 @@ async function continuarInicioLuegoDeLogin() {
   bindGlobalHandlers();
   resetLineaForm();
   aplicarPermisosUI();
+  verificarRecordatorioBackup();
+}
+
+// ---------- Recordatorio semanal de copia de seguridad ----------
+// A TODOS los usuarios (sin importar el rol) les tiene que aparecer este
+// aviso si pasó una semana (o más, o nunca) desde la última vez que
+// descargaron el JSON de respaldo. No se puede cerrar de ninguna otra
+// forma: solo descargando el backup se oculta.
+const MS_UNA_SEMANA = 7 * 24 * 60 * 60 * 1000;
+async function verificarRecordatorioBackup() {
+  const cfg = await DB.get("config", "ultimoBackupDescargado");
+  const ultimo = cfg && cfg.value ? new Date(cfg.value).getTime() : 0;
+  const vencido = !ultimo || (Date.now() - ultimo) > MS_UNA_SEMANA;
+  const overlay = $("#backupReminderOverlay");
+  if (overlay) overlay.style.display = vencido ? "flex" : "none";
 }
 
 function renderAll() {
@@ -535,6 +551,18 @@ function bindGlobalHandlers() {
     restaurarBackupJSON(file);
     e.target.value = "";
   });
+
+  // Recordatorio semanal de backup: el único botón del pop-up. Descarga el
+  // JSON, guarda la fecha y recién ahí se puede ocultar el aviso.
+  const btnBackupReminder = $("#btnBackupReminderDescargar");
+  if (btnBackupReminder) {
+    btnBackupReminder.addEventListener("click", async () => {
+      await exportarBackupJSON();
+      await DB.put("config", { key: "ultimoBackupDescargado", value: new Date().toISOString() });
+      const overlay = $("#backupReminderOverlay");
+      if (overlay) overlay.style.display = "none";
+    });
+  }
 
   // Pedidos de hierro
   $("#formHierro").addEventListener("submit", onSubmitHierro);
