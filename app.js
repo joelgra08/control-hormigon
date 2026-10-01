@@ -304,7 +304,9 @@ function onCambioRealtime() {
 // ---------- Init ----------
 async function init() {
   const footerVersion = document.getElementById("footerVersion");
-  if (footerVersion) footerVersion.textContent = `Desarrollado por Graña Zeballos Reiner Joel. RUT 100811800012. DECC ©. Versión ${APP_VERSION}`;
+  if (footerVersion) {
+    footerVersion.innerHTML = `Desarrollado por <a href="https://www.linkedin.com/in/joelgra/" target="_blank" rel="noopener noreferrer">Graña Zeballos Reiner Joel</a>. RUT 100811800012. DECC ©. Versión ${APP_VERSION}`;
+  }
 
   bindLoginForm();
   supabaseClient.auth.onAuthStateChange((event) => {
