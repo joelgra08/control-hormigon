@@ -106,7 +106,9 @@ function toast(msg, type = "") {
   t.textContent = msg;
   t.className = "toast show" + (type ? " " + type : "");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => (t.className = "toast"), 2600);
+  // Los avisos de error quedan un poco más de tiempo en pantalla: si pasa
+  // justo antes de un aviso de "listo", no queremos que se tape enseguida.
+  toastTimer = setTimeout(() => (t.className = "toast"), type === "error" ? 5500 : 2600);
 }
 
 // ---------- Carga de datos por obra ----------
@@ -1192,13 +1194,15 @@ async function onSubmitHierro(e) {
   // Facturas que ya estaban (menos las que se hayan sacado con "✕") +
   // las que se eligieron recién en el input de archivos.
   const facturasFinal = [...state.facturasHierroForm];
+  const erroresFactura = [];
   const fileInput = $("#hierro_factura");
   if (fileInput.files && fileInput.files.length > 0) {
     for (const file of fileInput.files) {
-      const path = `${state.obraId}/${pedidoId}/${Date.now()}_${file.name}`;
+      const path = `${state.obraId}/${pedidoId}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${file.name}`;
       const { error: upErr } = await supabaseClient.storage.from("facturas").upload(path, file, { upsert: true });
       if (upErr) {
-        toast(`No se pudo subir "${file.name}": ${upErr.message}`, "error");
+        console.error(`No se pudo subir "${file.name}":`, upErr);
+        erroresFactura.push(`${file.name} (${upErr.message})`);
       } else {
         facturasFinal.push({ path, nombre: file.name, tipo: file.type || "" });
       }
@@ -1221,7 +1225,11 @@ async function onSubmitHierro(e) {
   await loadObraData(state.obraId);
   resetHierroForm();
   renderHierro();
-  toast(state.editingHierroId ? "Pedido actualizado" : "Pedido registrado", "ok");
+  if (erroresFactura.length > 0) {
+    toast(`Pedido guardado, pero no se pudo subir: ${erroresFactura.join(" · ")}`, "error");
+  } else {
+    toast(state.editingHierroId ? "Pedido actualizado" : "Pedido registrado", "ok");
+  }
 }
 
 function editarHierro(pedidoId) {
