@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Control de Hormigón</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="loginOverlay" class="login-overlay">
+  <form id="formLogin" class="login-box">
+    <img src="favicon.svg" alt="" class="brand-icon" style="width:40px;height:40px;margin-bottom:6px" />
+    <h1>Control de Hormigón</h1>
+    <p class="hint" style="text-align:center">Ingresá con el email y la contraseña que te dieron de alta.</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" autocomplete="username" required />
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="loginPassword" autocomplete="current-password" required />
+    </div>
+    <div id="loginError" class="login-error" style="display:none"></div>
+    <button type="submit" id="btnLogin" class="primary" style="width:100%">Entrar</button>
+  </form>
+</div>
+
+<div id="app" style="display:none">
+
+<header class="topbar">
+  <img src="favicon.svg" alt="" class="brand-icon" />
+  <h1>Control de Hormigón</h1>
+  <div class="obra-selector">
+    <label style="color:#cfe0d6;font-size:12px">Obra:</label>
+    <select id="selObra"></select>
+    <button id="btnEditarObra" class="solo-admin" title="Editar obra">✎</button>
+    <button id="btnNuevaObra" class="solo-admin" title="Nueva obra">+ Obra</button>
+    <span id="saveStatus" class="save-status" title="Todo lo que cargás se guarda en el servidor compartido">Guardado</span>
+    <span id="miUsuarioInfo" class="mi-usuario"></span>
+    <button id="btnLogout" class="ghost-dark" title="Cerrar sesión">Salir</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button data-tab="remitos" class="active">Remitos</button>
+  <button data-tab="tarjeta">Tarjeta diaria</button>
+  <button data-tab="resumen">Resumen mensual</button>
+  <button data-tab="probetas">Probetas</button>
+  <button data-tab="personal">Personal</button>
+  <button data-tab="hierro">Pedidos de hierro</button>
+  <button data-tab="exportar">Exportar</button>
+  <button data-tab="catalogo" class="tab-referencias">Referencias</button>
+</nav>
+
+<main>
+
+  <!-- ===================== REMITOS ===================== -->
+  <section id="view-remitos" class="view active">
+    <div class="panel solo-puede-agregar">
+      <h2 id="formRemitoTitulo">Nuevo remito</h2>
+      <p class="hint">Un remito (camión) puede tener uno o varios elementos. Cargá primero los datos del remito y después agregá cada elemento al que se le aplicó ese hormigón.</p>
+      <form id="formRemito">
+        <h3>Datos del remito</h3>
+        <div class="form-grid wide">
+          <div class="field">
+            <label>Fecha *</label>
+            <input type="date" name="fecha" id="fecha" required />
+          </div>
+          <div class="field">
+            <label>Proveedor</label>
+            <select name="proveedorId" id="proveedorId"></select>
+          </div>
+          <div class="field">
+            <label>Tipo de hormigón</label>
+            <select name="hormigonId" id="hormigonId"></select>
+            <div class="hint" id="hormigonPreview"></div>
+          </div>
+          <div class="field">
+            <label>N° Remito</label>
+            <input type="text" name="remitoNro" />
+          </div>
+          <div class="field">
+            <label>M3 remito (camión)</label>
+            <input type="number" step="0.01" name="m3Remito" />
+          </div>
+          <div class="field">
+            <label>Unidad móvil</label>
+            <input type="text" name="unidadMovil" />
+          </div>
+          <div class="field">
+            <label>Hora - A obra</label>
+            <input type="time" name="horaAObra" />
+          </div>
+          <div class="field">
+            <label>Hora - En obra</label>
+            <input type="time" name="horaEnObra" />
+          </div>
+          <div class="field">
+            <label>Hora - Descarga</label>
+            <input type="time" name="horaDescarga" />
+          </div>
+          <div class="field">
+            <label>Hora - Fin descarga</label>
+            <input type="time" name="horaFinDescarga" />
+          </div>
+        </div>
+
+        <div class="row between" style="margin-top:16px">
+          <h3 style="margin:0">Probetas</h3>
+          <label class="row" style="gap:6px;font-size:12.5px;color:var(--muted)">
+            <input type="checkbox" id="chkAutoProbetas" style="width:auto" /> Numerar automáticamente
+          </label>
+        </div>
+        <div class="form-grid" style="max-width:420px">
+          <div class="field">
+            <label>Probeta 1</label>
+            <input type="number" name="probeta1" id="probeta1" />
+          </div>
+          <div class="field">
+            <label>Probeta 2</label>
+            <input type="number" name="probeta2" id="probeta2" />
+          </div>
+          <div class="field">
+            <label>Probeta 3</label>
+            <input type="number" name="probeta3" id="probeta3" />
+          </div>
+        </div>
+
+        <h3>Elementos de este remito</h3>
+        <div id="lineasFormEmpty" class="empty-state" style="padding:16px">Todavía no agregaste ningún elemento a este remito.</div>
+        <div id="tablaLineasFormWrap" class="table-scroll" style="max-height:none;margin-bottom:10px">
+          <table id="tablaLineasForm">
+            <thead><tr><th>Elemento</th><th>Nomenclatura / Sector</th><th>Volumen (m3)</th><th>Cuadrilla</th><th>Bombeado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="hint" id="lineasFormTotal" style="margin-bottom:10px"></div>
+
+        <div class="actions" style="margin-top:6px">
+          <button type="submit" class="primary">Guardar remito</button>
+          <button type="button" id="btnCancelarEdicion" style="display:none">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel solo-puede-agregar">
+      <h3 style="margin-top:0">Agregar elemento al remito</h3>
+      <form id="formLinea">
+        <div class="form-grid wide">
+          <div class="field">
+            <label>Elemento *</label>
+            <select name="lin_elementoId" id="lin_elementoId" required></select>
+            <div class="hint" id="lin_elementoPreview"></div>
+          </div>
+          <div class="field" id="lin_modificadoField" style="display:none; justify-content:flex-end">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer">
+              <input type="checkbox" name="lin_modificado" id="lin_modificado" style="width:auto" />
+              Modificado (pilote desplazado)
+            </label>
+          </div>
+          <div class="field">
+            <label>Nomenclatura</label>
+            <input type="text" name="lin_nomenclatura" placeholder="Ej: Losa Nivel 100" />
+          </div>
+          <div class="field">
+            <label>Sector</label>
+            <input type="text" name="lin_sector" placeholder="Ej: G01" />
+          </div>
+          <div class="field">
+            <label>Asentamiento (cm)</label>
+            <input type="number" step="0.1" name="lin_asentamiento" />
+          </div>
+          <div class="field">
+            <label>Nivel de fondo (m)</label>
+            <input type="number" step="0.01" name="lin_nivelFondo" />
+          </div>
+          <div class="field">
+            <label>Largo (cm)</label>
+            <input type="number" step="0.1" name="lin_largoCm" id="lin_largoCm" />
+          </div>
+          <div class="field">
+            <label>Ancho (cm)</label>
+            <input type="number" step="0.1" name="lin_anchoCm" id="lin_anchoCm" />
+          </div>
+          <div class="field">
+            <label>Área (m2)</label>
+            <input type="number" step="0.01" name="lin_areaM2" id="lin_areaM2" />
+            <div class="hint">Se completa sola con Largo×Ancho, o cargala vos (ej: superficies irregulares de AutoCAD)</div>
+          </div>
+          <div class="field">
+            <label>Altura (cm)</label>
+            <input type="number" step="0.1" name="lin_alturaCm" id="lin_alturaCm" />
+          </div>
+          <div class="field">
+            <label>Volumen (m3) *</label>
+            <input type="number" step="0.01" name="lin_volumen" id="lin_volumen" required />
+            <div class="hint">Se completa sola con Área×Altura. Si la cargás vos (ej: desde BIM), queda fija.</div>
+          </div>
+          <div class="field">
+            <label>Cuadrilla</label>
+            <select name="lin_cuadrillaId" id="lin_cuadrillaId"></select>
+          </div>
+          <div class="field">
+            <label>Bombeado</label>
+            <select name="lin_bombeado">
+              <option value="NO">NO</option>
+              <option value="SI">SI</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tipo de colocación</label>
+            <select name="lin_colocacionId" id="lin_colocacionId"></select>
+          </div>
+          <div class="field span2">
+            <label>Observaciones</label>
+            <input type="text" name="lin_observaciones" />
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" id="btnAgregarLinea" class="primary">+ Agregar elemento</button>
+          <button type="button" id="btnCancelarLinea" style="display:none">Cancelar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="row between">
+        <h2>Listado de remitos</h2>
+        <span id="remitosResumenFiltro" class="hint"></span>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <div class="field">
+          <label>Desde</label>
+          <input type="date" id="filtroDesde" />
+        </div>
+        <div class="field">
+          <label>Hasta</label>
+          <input type="date" id="filtroHasta" />
+        </div>
+        <div class="field">
+          <label>Elemento</label>
+          <select id="filtroElemento"></select>
+        </div>
+        <div class="field">
+          <label>Proveedor</label>
+          <select id="filtroProveedor"></select>
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button id="btnBuscarRemitos" class="primary">🔍 Buscar</button>
+        </div>
+        <div class="field" style="justify-content:flex-end">
+          <button id="btnLimpiarFiltro" class="ghost">Limpiar filtros</button>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:-6px;margin-bottom:12px">El filtro por fecha es el principal. Elemento y proveedor son opcionales. Tocá "Buscar" para aplicar los filtros.</p>
+
+      <div id="remitosEmpty" class="empty-state">Todavía no hay remitos cargados para esta obra.</div>
+      <div id="tablaRemitosWrap" class="table-scroll">
+        <table id="tablaRemitos">
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Elemento</th><th>Nomenclatura</th>
+              <th>Hormigón</th><th>Volumen (m3)</th><th>Proveedor</th><th>N° Remito</th>
+              <th>M3 remito</th><th>Cuadrilla</th><th>Bombeado</th><th>Modificado</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TARJETA DIARIA ===================== -->
+  <section id="view-tarjeta" class="view">
+    <div class="panel">
+      <div class="row between">
+        <h2>Tarjeta diaria de hormigonado</h2>
+        <div class="row">
+          <button id="btnImprimirTarjeta" class="ghost">🖨 Imprimir (PDF)</button>
+          <button id="btnExportarTarjeta" class="primary">⬇ Exportar a Excel</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <div class="field"><label>Fecha</label><input type="date" id="tarjetaFecha" /></div>
+        <div class="field" style="justify-content:flex-end"><button id="btnVerTarjeta" class="primary">🔍 Buscar</button></div>
+        <div class="field"><label>Temperatura (°C)</label><input type="number" step="0.1" id="tarjetaTemperatura" /></div>
+      </div>
+      <div class="hint" style="margin-bottom:10px">
+        <strong id="tarjetaObraNombre"></strong> — <span id="tarjetaObraUbicacion"></span>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="value" id="kpiTarjetaTotalM3">-</div><div class="label">Total m³</div></div>
+        <div class="kpi"><div class="value" id="kpiTarjetaBombeado">-</div><div class="label">M³ bombeados</div></div>
+        <div class="kpi warn"><div class="value" id="kpiTarjetaDesperdicio">-</div><div class="label">M³ desperdicio</div></div>
+        <div class="kpi warn"><div class="value" id="kpiTarjetaPctDesperdicio">-</div><div class="label">% desperdicio</div></div>
+        <div class="kpi"><div class="value" id="kpiTarjetaCantRemitos">-</div><div class="label">Remitos del día</div></div>
+      </div>
+
+      <h3>Detalle del día</h3>
+      <div id="tarjetaEmpty" class="empty-state">No hay remitos cargados para esta fecha.</div>
+      <div id="tablaTarjetaWrap" class="table-scroll">
+        <table id="tablaTarjeta">
+          <thead>
+            <tr><th>Tipo hormigón</th><th>M3</th><th>Elemento</th><th>Proveedor</th><th>Nombre / Sector</th><th>Remito</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== RESUMEN MENSUAL ===================== -->
+  <section id="view-resumen" class="view">
+    <div class="panel">
+      <div class="row between">
+        <h2>Resumen mensual</h2>
+        <div class="row">
+          <button id="btnExportarResumen" class="primary">⬇ Exportar a Excel</button>
+          <button id="btnExportarResumenPDF" class="ghost">🖨 Exportar a PDF</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <div class="field"><label>Mes</label><input type="month" id="resumenMes" /></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="value" id="kpiResumenTotalM3">-</div><div class="label">Total m³ del mes</div></div>
+        <div class="kpi"><div class="value" id="kpiResumenBombeado">-</div><div class="label">M³ bombeados</div></div>
+        <div class="kpi warn"><div class="value" id="kpiResumenDesperdicio">-</div><div class="label">M³ desperdicio</div></div>
+        <div class="kpi warn"><div class="value" id="kpiResumenPctDesperdicio">-</div><div class="label">% desperdicio</div></div>
+        <div class="kpi"><div class="value" id="kpiResumenDias">-</div><div class="label">Días con hormigonado</div></div>
+        <div class="kpi"><div class="value" id="kpiResumenPromedio">-</div><div class="label">Promedio m³/día</div></div>
+        <div class="kpi"><div class="value" id="kpiResumenCantRemitos">-</div><div class="label">Cantidad de remitos</div></div>
+        <div class="kpi warn" id="kpiResumenPagaM2Card" style="display:none"><div class="value" id="kpiResumenPagaM2">-</div><div class="label">Elementos por m² (no suman al total)</div></div>
+      </div>
+
+      <div class="grid-2col">
+        <div>
+          <h3>M³ por tipo de elemento</h3>
+          <div id="resumenPorElemento"></div>
+        </div>
+        <div>
+          <h3>M³ por proveedor</h3>
+          <div id="resumenPorProveedor"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Productividad (HH / m³)</h2>
+      <p class="hint">La cantidad de personal por equipo se calcula sola a partir de la pestaña "Personal". La cuadrilla de un elemento define si su volumen cuenta como "Torre" o "Basamento" (se configura en Referencias → Cuadrillas).</p>
+      <form id="formPersonalMensual" class="form-grid wide">
+        <div class="field"><label>Horas promedio / día</label><input type="number" step="0.1" id="pm_horas" /></div>
+        <div class="field"><label>Feriados / días de paro</label><input type="number" id="pm_feriados" min="0" /></div>
+      </form>
+
+      <div class="kpi-grid" style="margin-top:14px">
+        <div class="kpi"><div class="value" id="pm_cant_torre">-</div><div class="label">Personal Torre</div></div>
+        <div class="kpi"><div class="value" id="pm_cant_basamento">-</div><div class="label">Personal Basamento</div></div>
+        <div class="kpi"><div class="value" id="pm_cant_herreros">-</div><div class="label">Herreros</div></div>
+        <div class="kpi"><div class="value" id="pm_cant_indirectos">-</div><div class="label">Indirectos</div></div>
+      </div>
+
+      <div class="kpi-grid" style="margin-top:10px">
+        <div class="kpi"><div class="value" id="pm_diasLaborables">-</div><div class="label">Días laborables del mes</div></div>
+        <div class="kpi"><div class="value" id="pm_m3Torre">-</div><div class="label">M³ Torre</div></div>
+        <div class="kpi"><div class="value" id="pm_m3Basamento">-</div><div class="label">M³ Basamento</div></div>
+      </div>
+
+      <h3>HH/m³ — general de la obra (carpinteros + herreros)</h3>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="value" id="hh_general_directos">-</div><div class="label">Directos (sin indirectos)</div></div>
+        <div class="kpi"><div class="value" id="hh_general_indirectos">-</div><div class="label">Global (con indirectos)</div></div>
+      </div>
+
+      <h3>HH/m³ — por cuadrilla de carpinteros</h3>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="value" id="hh_torre_directos">-</div><div class="label">Torre — directos</div></div>
+        <div class="kpi"><div class="value" id="hh_torre_indirectos">-</div><div class="label">Torre — con indirectos/2</div></div>
+        <div class="kpi"><div class="value" id="hh_basamento_directos">-</div><div class="label">Basamento — directos</div></div>
+        <div class="kpi"><div class="value" id="hh_basamento_indirectos">-</div><div class="label">Basamento — con indirectos/2</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Comparación con mes anterior</h2>
+      <p class="hint">Compara la producción y la productividad del mes elegido contra el mes calendario inmediatamente anterior, para ver si aumentó o se redujo.</p>
+      <div id="resumenComparacion"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Detalle de remitos del mes</h3>
+      <div id="resumenDetalleEmpty" class="empty-state">No hay remitos cargados para este mes.</div>
+      <div id="tablaResumenDetalleWrap" class="table-scroll">
+        <table id="tablaResumenDetalle">
+          <thead>
+            <tr><th>Fecha</th><th>Elemento</th><th>Nomenclatura / Sector</th><th>Hormigón</th><th>Volumen (m3)</th><th>Proveedor</th><th>N° Remito</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PROBETAS ===================== -->
+  <section id="view-probetas" class="view">
+    <div class="panel">
+      <div class="row between">
+        <h2>Reporte de probetas</h2>
+        <button id="btnExportarProbetas" class="primary">⬇ Exportar a Excel</button>
+      </div>
+      <p class="hint">Un renglón por remito (no por elemento), con sus 3 probetas correlativas. Pensado para mandarle al encargado de romper probetas.</p>
+      <div class="row" style="margin-bottom:14px">
+        <div class="field"><label>Desde</label><input type="date" id="probetasDesde" /></div>
+        <div class="field"><label>Hasta</label><input type="date" id="probetasHasta" /></div>
+        <div class="field" style="justify-content:flex-end"><button id="btnBuscarProbetas" class="primary">🔍 Buscar</button></div>
+      </div>
+      <div id="probetasEmpty" class="empty-state">No hay remitos con probetas cargadas en ese rango.</div>
+      <div id="tablaProbetasWrap" class="table-scroll">
+        <table id="tablaProbetas">
+          <thead>
+            <tr><th>Fecha</th><th>N° Remito</th><th>Tipo de hormigón</th><th>Elemento(s)</th><th>Probeta 1</th><th>Probeta 2</th><th>Probeta 3</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PERSONAL ===================== -->
+  <section id="view-personal" class="view">
+    <div id="personalRoot"></div>
+  </section>
+
+  <!-- ===================== PEDIDOS DE HIERRO ===================== -->
+  <section id="view-hierro" class="view">
+    <div class="panel solo-puede-agregar">
+      <h2 id="formHierroTitulo">Nuevo pedido de hierro</h2>
+      <p class="hint">Un pedido puede tener uno o varios ítems (barras de distintos diámetros, perfiles, etc.). Cargá primero los datos del pedido, agregá cada ítem, y cuando te llegue la factura adjuntala acá mismo.</p>
+      <form id="formHierro">
+        <h3>Datos del pedido</h3>
+        <div class="form-grid wide">
+          <div class="field">
+            <label>Fecha *</label>
+            <input type="date" name="hierro_fecha" id="hierro_fecha" required />
+          </div>
+          <div class="field">
+            <label>Proveedor</label>
+            <input type="text" name="hierro_proveedor" id="hierro_proveedor" />
+          </div>
+          <div class="field span2">
+            <label>Observaciones</label>
+            <input type="text" name="hierro_observaciones" id="hierro_observaciones" />
+          </div>
+          <div class="field span2">
+            <label>Factura (PDF o imagen)</label>
+            <input type="file" name="hierro_factura" id="hierro_factura" accept="application/pdf,image/*" />
+            <div class="hint" id="hierroFacturaActual"></div>
+          </div>
+        </div>
+
+        <h3>Ítems de este pedido</h3>
+        <div id="itemsHierroFormEmpty" class="empty-state" style="padding:16px">Todavía no agregaste ningún ítem a este pedido.</div>
+        <div id="tablaItemsHierroFormWrap" class="table-scroll" style="max-height:none;margin-bottom:10px">
+          <table id="tablaItemsHierroForm">
+            <thead><tr><th>Tipo</th><th>Detalle</th><th>Cantidad</th><th>Observaciones</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="actions" style="margin-top:6px">
+          <button type="submit" id="btnGuardarHierro" class="primary">Guardar pedido</button>
+          <button type="button" id="btnCancelarHierro" style="display:none">Cancelar edición</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel solo-puede-agregar">
+      <h3 style="margin-top:0">Agregar ítem al pedido</h3>
+      <form id="formItemHierro">
+        <div class="form-grid wide">
+          <div class="field">
+            <label>Tipo *</label>
+            <select name="itemHierro_tipo" id="itemHierro_tipo">
+              <option value="BARRA">Barra conformada (Ø)</option>
+              <option value="PERFIL">Perfil</option>
+            </select>
+          </div>
+          <div class="field" id="hierroCamposBarra">
+            <label>Diámetro *</label>
+            <select name="itemHierro_diametro" id="itemHierro_diametro"></select>
+          </div>
+          <div class="field" id="hierroCamposBarraLongitud">
+            <label>Longitud (m)</label>
+            <input type="number" step="0.1" name="itemHierro_longitud" id="itemHierro_longitud" value="12" />
+          </div>
+          <div class="field" id="hierroCamposPerfil" style="display:none">
+            <label>Perfil *</label>
+            <input type="text" name="itemHierro_perfilNombre" id="itemHierro_perfilNombre" placeholder="Ej: IPN 100, UPN 80, Ángulo 30x30x3" />
+          </div>
+          <div class="field">
+            <label id="itemHierro_cantidadLabel">Cantidad (toneladas) *</label>
+            <input type="number" step="0.01" name="itemHierro_cantidad" id="itemHierro_cantidad" min="0" />
+          </div>
+          <div class="field span2">
+            <label>Observaciones</label>
+            <input type="text" name="itemHierro_observaciones" id="itemHierro_observaciones" placeholder="Ej: para zapatas sector A" />
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" id="btnAgregarItemHierro" class="primary">+ Agregar ítem</button>
+          <button type="button" id="btnCancelarItemHierro" style="display:none">Cancelar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="row between">
+        <h2>Pedidos registrados</h2>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <div class="field"><label>Desde</label><input type="date" id="hierroDesde" /></div>
+        <div class="field"><label>Hasta</label><input type="date" id="hierroHasta" /></div>
+        <div class="field" style="justify-content:flex-end"><button id="btnBuscarHierro" class="primary">🔍 Buscar</button></div>
+        <div class="field" style="justify-content:flex-end"><button id="btnLimpiarHierro" class="ghost">Limpiar filtros</button></div>
+      </div>
+      <div id="hierroEmpty" class="empty-state">Todavía no hay pedidos de hierro cargados para esta obra.</div>
+      <div id="tablaHierroWrap" class="table-scroll">
+        <table id="tablaHierro">
+          <thead>
+            <tr><th>Fecha</th><th>Proveedor</th><th>Ítems del pedido</th><th>Factura</th><th></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== REFERENCIAS (antes "Catálogo") ===================== -->
+  <section id="view-catalogo" class="view">
+    <div class="panel">
+      <h2>Referencias de la obra</h2>
+      <p class="hint">Estas listas alimentan los desplegables del formulario de remitos. Tocá el lápiz (✎) para editar una fila puntual — así evitamos ediciones por error. El "Grupo" de cada cuadrilla (Torre/Basamento) se usa para calcular HH/m³ en Resumen mensual.</p>
+    </div>
+    <div id="catalogoRoot"></div>
+  </section>
+
+  <!-- ===================== EXPORTAR ===================== -->
+  <section id="view-exportar" class="view">
+    <div class="panel">
+      <h2>Exportar remitos a Excel</h2>
+      <p class="hint">Genera un archivo .xlsx con el detalle completo de todos los remitos de la obra (todas las columnas cargadas) más un resumen por mes. Útil para enviar el detalle mensual que pide el control de obra.</p>
+      <div class="row" style="margin-bottom:14px">
+        <div class="field"><label>Desde</label><input type="date" id="expDesde" /></div>
+        <div class="field"><label>Hasta</label><input type="date" id="expHasta" /></div>
+        <div class="field" style="justify-content:flex-end">
+          <button id="btnExportarTodo" class="primary">⬇ Exportar todo (detalle completo)</button>
+        </div>
+      </div>
+      <p class="hint">Dejando las fechas vacías se exportan todos los remitos cargados.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Exportar para control de remitos</h2>
+      <p class="hint">Un renglón por remito, solo con lo necesario para cruzar contra las facturas: Fecha, N° de remito, M3 del remito, tipo de hormigón y si fue bombeado o volcado. Pensado para mandarle a quien controla remitos vs. facturas, sin datos de más. Usa el mismo rango de fechas de arriba.</p>
+      <div class="row" style="justify-content:flex-end">
+        <button id="btnExportarControl" class="primary">⬇ Exportar control de remitos</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Copia de seguridad</h2>
+      <p class="hint">Todo lo que cargás queda guardado en el servidor compartido, en tiempo real para todos los que usan la app. Esta copia en JSON es un respaldo extra (por si hiciera falta recuperar algo), no hace falta para el uso normal del día a día.</p>
+      <div class="row">
+        <button id="btnBackupDescargar" class="ghost">⬇ Descargar copia de seguridad (JSON)</button>
+        <label class="row solo-admin" style="gap:8px">
+          <span class="hint" style="margin:0">Restaurar desde un archivo de copia (reemplaza TODO):</span>
+          <input type="file" id="inputRestaurarBackup" accept="application/json" />
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-note">
+    Los datos se guardan en este navegador, en esta PC. Exportá a Excel o hacé una copia de seguridad periódicamente.<br />
+    <span id="footerVersion">Desarrollado por Graña Zeballos Reiner Joel. RUT 100811800012. DECC ©. Versión 1.3.3</span>
+  </div>
+</main>
+
+<!-- Modal Obra -->
+<div class="modal-backdrop" id="modalObra">
+  <div class="modal">
+    <h3 id="modalObraTitulo">Nueva obra</h3>
+    <form id="formObraModal">
+      <input type="hidden" name="id" />
+      <div class="field" style="margin-bottom:8px">
+        <label>Nombre de la obra *</label>
+        <input type="text" name="nombre" required />
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label>Ubicación</label>
+        <input type="text" name="ubicacion" />
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label>Proyectista</label>
+        <input type="text" name="proyectista" />
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label>Director de obra</label>
+        <input type="text" name="director" />
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label>Supervisor de terreno (empresa, para la tarjeta diaria en PDF)</label>
+        <input type="text" name="supervisorTerreno" placeholder="Ej: MELKUY SA" />
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>Próxima probeta (numeración automática)</label>
+        <input type="number" name="proximaProbeta" />
+      </div>
+      <div class="row between">
+        <button type="button" class="danger" id="btnBorrarObra" style="display:none">Borrar obra</button>
+        <div class="row end" style="margin-left:auto">
+          <button type="button" data-close-modal>Cancelar</button>
+          <button type="submit" class="primary">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div><!-- /#app -->
+
+<script src="supabase.umd.js"></script>
+<script src="supabase-config.js"></script>
+<script src="xlsx.full.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="jspdf.plugin.autotable.min.js"></script>
+<script src="db.js"></script>
+<script src="seed.js"></script>
+<script src="seed-summit-data.js"></script>
+<script src="auth.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

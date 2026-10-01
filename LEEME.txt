@@ -1,0 +1,223 @@
+CONTROL DE HORMIGÓN — App en la nube (multiusuario)
+=====================================================
+Versión 2.0.0
+
+QUÉ ES
+------
+App para cargar remitos de hormigón de cualquier obra y sacar de ahí:
+- Tarjeta diaria de hormigonado, con impresión directa a PDF (con recuadro
+  para firmar) para archivar en el legajo físico
+- Resumen mensual (m3 total, desperdicio, bombeado, por elemento, por proveedor,
+  productividad HH/m3 por equipo —totalmente configurable—, calculada sola a
+  partir de la nómina, y comparación contra el mes anterior), también
+  exportable a PDF prolijo
+- Reporte de probetas (con numeración automática)
+- Registro de pedidos de hierro (uno o varios ítems por pedido: barras Ø6 a
+  Ø32 por tonelada, o perfiles por unidad), con la factura adjunta
+- Export a Excel (.xlsx) con el detalle completo de remitos, y otro export
+  simplificado para control de remitos vs. facturas, y export de la nómina
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.0
+----------------------------
+Esta versión deja de ser una app que guarda todo en tu PC: ahora los datos
+viven en un servidor compartido (Supabase), así que:
+- Varias personas pueden usarla al mismo tiempo, cada una con su propio
+  usuario y contraseña.
+- Lo que carga uno aparece en la pantalla de los demás en tiempo real, sin
+  recargar la página.
+- Cada usuario tiene un ROL que define qué puede ver y qué puede hacer:
+  * Administrador: puede hacer todo (Joel).
+  * Controller: puede ver y descargar todo, pero no puede agregar, editar
+    ni borrar nada.
+  * Asistente: puede agregar remitos y pedidos de hierro, y ver todo lo
+    demás, pero no puede modificar ni eliminar nada ya cargado.
+  * Probetas: solo ve la pestaña "Probetas" (para descargar ese reporte),
+    nada más.
+- Ahora hace falta INTERNET para usar la app (antes funcionaba sin
+  conexión). Si no hay internet, la app no puede cargar ni guardar datos.
+
+CÓMO USARLA
+-----------
+1. Copiá toda la carpeta a tu PC, o alojala en un hosting (ver más abajo).
+2. Abrí el archivo "index.html" con Google Chrome.
+3. Ingresá con el email y la contraseña que te haya dado el administrador.
+4. Listo — vas a ver solo la(s) obra(s) a las que tenés acceso.
+
+Nota: aunque los archivos están en tu PC, los DATOS (remitos, catálogo,
+personal, etc.) viven en el servidor, no en esta carpeta. Por eso no importa
+desde qué PC o carpeta abras "index.html": mientras entres con tu usuario,
+vas a ver siempre la misma información, actualizada.
+
+CERRAR SESIÓN / CAMBIAR DE USUARIO
+------------------------------------
+Arriba a la derecha, botón "Salir". La próxima vez que se abra la app va a
+pedir login de nuevo.
+
+COPIA DE SEGURIDAD (OPCIONAL)
+--------------------------------
+Los datos ya quedan guardados en el servidor apenas los cargás (mismo
+indicador "✓ Guardado" de siempre). La pestaña "Exportar → Copia de
+seguridad" sigue estando, como respaldo extra por si hiciera falta recuperar
+algo puntual — no hace falta usarla para el trabajo del día a día. Restaurar
+un archivo de copia reemplaza TODOS los datos del servidor, así que esa
+opción solo la ve el Administrador.
+
+CÓMO FUNCIONA
+-------------
+- "Obras": arriba a la derecha elegís la obra activa. Podés crear todas las
+  que necesites (Summit, otra obra futura, etc.) — cada una tiene su propio
+  catálogo, remitos, probetas, personal y dotación, totalmente separados.
+  Ahí también se ve/edita la "Próxima probeta" de cada obra.
+
+- "Remitos": un remito (camión) puede tener UNO O VARIOS elementos —
+  primero cargás los datos del remito (proveedor, hormigón, N° de remito,
+  M3 del camión, horarios, probetas) y después agregás, uno por uno, cada
+  elemento al que se le aplicó ese hormigón (losa, viga, pilar, etc., con su
+  propio volumen, cuadrilla, si fue bombeado, etc.). El listado de abajo
+  muestra una fila por elemento, y el botón "editar" (✎) te abre el remito
+  completo con todas sus líneas.
+
+  El filtro del listado es por fecha (el principal), y opcionalmente por
+  elemento y proveedor. Los filtros NO se aplican solos: tocá el botón verde
+  "🔍 Buscar" para ejecutarlos, o "Limpiar filtros" para sacarlos todos.
+
+  Probetas: se numeran solas y consecutivas (3 por remito) en cuanto tildás
+  "Numerar automáticamente" — quedan editables por si alguna vez hay que
+  corregir un número a mano. Cada vez que guardás un remito, el contador de
+  la obra avanza solo.
+
+  Al cargar un elemento, además de Largo y Ancho (cm) hay un campo "Área
+  (m2)": se completa solo con Largo×Ancho, pero también lo podés escribir
+  vos directamente (por ejemplo cuando sacás el m2 de una superficie
+  irregular en AutoCAD y no tenés largo/ancho). El "Volumen (m3)" se
+  completa solo con Área×Altura apenas tenés esos dos datos. Si preferís
+  cargar el volumen a mano — por ejemplo un m3 que sacaste de un modelo
+  BIM — escribilo directo en ese campo: queda fijo y no se vuelve a
+  recalcular solo hasta que borres el campo o cargues otro elemento.
+
+  Cuando el elemento elegido es un Cabezal o una Viga riostra (algo que puede
+  quedar desplazado si el pilote corrido no cayó donde el proyecto lo preveía),
+  aparece un checkbox "Modificado" para marcarlo. Esto queda visible como una
+  columna/badge en el listado de remitos y como columna "Modificado" en el
+  export a Excel de detalle completo, para poder filtrar fácil cuáles
+  elementos se modificaron en obra respecto al proyecto. Cualquier otro
+  elemento puede habilitarse para esto desde Referencias → Elementos,
+  tildando "¿Puede quedar modificado?".
+
+- "Tarjeta diaria": elegís una fecha y tocás "🔍 Buscar" para armar la
+  tarjeta del día (temperatura, m3 total, m3 bombeado, m3 desperdicio,
+  detalle). El botón "🖨 Imprimir (PDF)" genera un PDF con el mismo formato
+  del reporte que usás hoy (encabezado con Obra/Ubicación/Fecha, los datos
+  del día, el detalle de elementos, un recuadro para Observaciones/Croquis
+  y, abajo de todo, dos recuadros para firmar: uno con el nombre del
+  Supervisor de Terreno debajo, y otro en blanco sin ningún nombre) —
+  pensado para imprimirlo, firmarlo y guardarlo en el legajo físico, o
+  mandarlo por mail. El archivo se descarga con el nombre "AAAA.MM.DD
+  tarjeta diaria.pdf" (por ejemplo "2026.09.30 tarjeta diaria.pdf").
+  También se puede exportar a Excel.
+
+  El nombre de la empresa que hace de "Supervisor de Terreno" en el PDF
+  sale del dato "Supervisor de terreno" que se carga en la obra (menú
+  "Obras", al crear o editar una obra) — en Summit ya quedó cargado como
+  "MELKUY SA".
+
+- "Resumen mensual": elegís un mes y te arma el resumen (m3 total,
+  desperdicio, bombeado, por elemento, por proveedor, detalle completo) y
+  además la productividad de mano de obra:
+    * La cantidad de personal por equipo se calcula SOLA a partir de lo que
+      cargues en la pestaña "Personal" — no hay que tipearla cada mes.
+    * Vos cargás las horas promedio por día y los feriados/paros del mes.
+    * La app calcula sola los HH/m3: general de la obra (Torre + Basamento +
+      Herreros, con y sin indirectos) y por cuadrilla (Torre y Basamento,
+      cada una con y sin la mitad de los indirectos).
+    * El volumen de cada cuadrilla sale de qué cuadrilla quedó cargada en
+      cada elemento del remito — por eso en "Referencias → Cuadrillas" cada
+      cuadrilla tiene un "Grupo" (Torre / Basamento / Otro): ahí es donde se
+      define para qué equipo cuenta cada m3.
+    * Debajo aparece una "Comparación con mes anterior": muestra el total de
+      m3, el promedio de m3/día y el HH/m3 general del mes elegido contra el
+      mes calendario inmediatamente anterior, con el % de variación en verde
+      (mejora) o rojo (empeora) — para el HH/m3, bajar es lo bueno (más
+      productividad), así que ahí el color va al revés que en los m3. Esta
+      sección se completa sola en cuanto haya datos cargados de un mes
+      anterior.
+    * Elementos que se pagan por m2 (por defecto, Contrapiso) NO suman al
+      "Total m3" del mes ni a la cuenta de HH/m3, porque esa mano de obra se
+      cobra/mide distinto y mezclarla distorsiona ambos números. Su m3 y m2
+      se muestran aparte, en una tarjeta "Elementos por m2 (no suman al
+      total)" que aparece sola cuando corresponde, y se puede marcar
+      cualquier otro tipo de elemento igual desde Referencias → Elementos,
+      tildando "Se paga por m2 (no sumar al total)".
+  El botón "🖨 Exportar a PDF" genera un reporte mensual prolijo (KPIs,
+  m3 por elemento, m3 por proveedor, productividad, comparación con el mes
+  anterior si hay datos, y el detalle completo de remitos), pensado para
+  leerse bien impreso o por mail.
+
+- "Probetas": un reporte con un renglón por remito (fecha, N° de remito, tipo
+  de hormigón, elementos, y las 3 probetas) — pensado para pasarle directo al
+  encargado de romper probetas. El filtro por fecha también usa el botón
+  verde "🔍 Buscar". Se exporta a Excel.
+
+- "Personal": la nómina de la obra — nombre, apellido, cargo y a qué equipo
+  pertenece cada persona. Esta lista es la que alimenta automáticamente la
+  productividad del Resumen mensual. Se edita con el mismo sistema de lápiz
+  que "Referencias" (ver abajo), y tiene su propio botón "⬇ Exportar a
+  Excel" para sacar la nómina aparte.
+
+  Los equipos que aparecen en el desplegable (Torre, Basamento, Herreros,
+  Indirectos, y los que vos quieras agregar — Sanitarios, Electricistas,
+  etc.) se administran desde Referencias → Equipos: ahí les definís un
+  "Rol", que es lo que decide si ese equipo suma a alguna de las 4 cuentas
+  de HH/m3 o si queda afuera de ese cálculo (rol "Otro").
+
+- "Pedidos de hierro": un pedido puede tener uno o varios ítems — cargás
+  primero los datos del pedido (fecha, proveedor, observaciones) y después
+  agregás, uno por uno, cada ítem: Barra conformada (con diámetro de Ø6 a
+  Ø32 mm y largo en metros —12m por defecto—, pedida por TONELADA) o Perfil
+  (nombre libre, pedido por UNIDAD). A la factura se le puede adjuntar (PDF
+  o imagen) apenas te la mandan — queda guardada adentro del pedido y se
+  puede volver a abrir con el botón "📎 Ver" de la fila. El filtro por
+  fecha también usa "🔍 Buscar". Esto es solo un registro/archivo de
+  pedidos y facturas: NO calcula cantidades de hierro ni hace ningún
+  cómputo — eso sigue viviendo en el Excel, como se explica más abajo.
+
+- "Referencias" (antes "Catálogo"): elementos (con sus flags de
+  "¿Puede quedar modificado?" y "Se paga por m2"), tipos de hormigón,
+  proveedores, cuadrillas (con su grupo Torre/Basamento), tipos de
+  colocación, y Equipos de personal (con su rol para HH/m3). Para evitar
+  tocar algo por error, las filas se ven de solo lectura; tocá el lápiz (✎)
+  de una fila puntual para habilitar su edición, confirmá con el tilde (✓) o
+  cancelá con la cruz (✕). Está separada del resto de las pestañas, a la
+  derecha de todo.
+
+- "Exportar": tiene tres secciones —
+    1. Exportar todo (detalle completo): TODOS los remitos de la obra (o un
+       rango de fechas) a un Excel con el detalle completo de cada elemento,
+       incluyendo la columna "Modificado" — es el que probablemente le sirva
+       a "vale de control".
+    2. Exportar control de remitos: un Excel simplificado, un renglón POR
+       REMITO (no por elemento), con solo Fecha, N° de remito, M3 del
+       remito, tipo de hormigón y si fue Bombeado o Volcado — pensado para
+       mandarle a la persona que controla remitos contra facturas, sin
+       datos de más.
+    3. Copia de seguridad: descargar/restaurar el respaldo completo en JSON
+       (ver arriba, sección de migración).
+
+QUÉ QUEDÓ AFUERA (A PROPÓSITO)
+-------------------------------
+Esta app NO calcula cómputos de hierro/mallas/varillas (cuánto hierro
+necesita cada elemento) — eso sigue viviendo en el Excel de Summit tal cual
+está. Lo único que se agregó acá es "Pedidos de hierro", un registro simple
+de cada pedido que hacés (con su factura adjunta), no un cómputo. Esta app
+es sobre todo para remitos de hormigón, y sirve para cualquier obra futura
+(Zulamián o la que sea).
+
+SI QUERÉS QUE LE AGREGUE ALGO
+-------------------------------
+Como tenés Claude Code, esta carpeta (index.html, app.js, db.js, seed.js,
+styles.css, seed-summit-data.js) es el código fuente completo y editable de
+la app: se puede pedir que se le agreguen más reportes, más campos, gráficos,
+un color de marca exacto para el ícono, o conectarla a algo más adelante
+(por ejemplo permitir que la usen varias personas a la vez, o subir los datos
+a la nube) cuando eso haga falta. Cada vez que se haga una corrección o un
+ajuste, se sube el número de versión que ves abajo de todo en la app.
