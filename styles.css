@@ -409,11 +409,18 @@ body[data-rol="controller"] .solo-admin,
 body[data-rol="controller"] .solo-puede-agregar,
 body[data-rol="asistente"] .solo-admin,
 body[data-rol="probetas"] .solo-admin,
-body[data-rol="probetas"] .solo-puede-agregar {
+body[data-rol="probetas"] .solo-puede-agregar,
+body[data-rol="proyecto_ejecutivo"] .solo-admin,
+body[data-rol="proyecto_ejecutivo"] .solo-puede-agregar {
   display: none !important;
 }
 
 /* Probetas: solo ve su propia pestaña */
 body[data-rol="probetas"] nav.tabs button:not([data-tab="probetas"]) {
+  display: none !important;
+}
+
+/* Proyecto Ejecutivo: solo ve Tarjeta diaria y Resumen mensual */
+body[data-rol="proyecto_ejecutivo"] nav.tabs button:not([data-tab="tarjeta"]):not([data-tab="resumen"]) {
   display: none !important;
 }

@@ -11,11 +11,13 @@ const ROLES_INFO = {
   controller: "Controller",
   asistente: "Asistente",
   probetas: "Probetas",
+  proyecto_ejecutivo: "Proyecto Ejecutivo",
 };
 
 function esAdmin() { return state.miPerfil?.rol === "administrador"; }
 function esAsistente() { return state.miPerfil?.rol === "asistente"; }
 function esProbetas() { return state.miPerfil?.rol === "probetas"; }
+function esProyectoEjecutivo() { return state.miPerfil?.rol === "proyecto_ejecutivo"; }
 function puedeAgregar() { return esAdmin() || esAsistente(); } // remitos y pedidos de hierro
 
 function mostrarLogin(mensaje) {
@@ -71,6 +73,11 @@ function aplicarPermisosUI() {
   // Probetas: solo puede ver/usar la pestaña de Probetas.
   if (esProbetas()) {
     showTab("probetas");
+  }
+
+  // Proyecto Ejecutivo: solo puede ver Tarjeta diaria y Resumen mensual.
+  if (esProyectoEjecutivo()) {
+    showTab("tarjeta");
   }
 
   // Campos que solo el administrador puede editar (temperatura del día,
