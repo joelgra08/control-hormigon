@@ -392,6 +392,19 @@ tbody tr:hover { background: #f8fafc; }
   text-align: center;
 }
 
+/* La pantalla de ingreso (antes de elegir la obra) va toda en escala de
+   grises, sin el verde de la marca. Una vez adentro (Summit y las demás
+   obras) el verde se mantiene igual que siempre: por eso esto apunta
+   puntualmente a #loginOverlay y no a la clase .login-overlay, que
+   también usa el aviso de copia de seguridad. */
+#loginOverlay { background: #2b2b2b; }
+#loginOverlay button.primary { background: #4d4d4d; border-color: #4d4d4d; }
+#loginOverlay button.primary:hover { background: #343434; }
+#loginOverlay input:focus, #loginOverlay select:focus {
+  border-color: #8a8a8a;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
 .mi-usuario {
   color: #d7ead9;
   font-size: 12px;
