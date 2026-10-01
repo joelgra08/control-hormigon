@@ -261,6 +261,16 @@ async function setObraActiva(obraId) {
   await loadObraData(obraId);
   renderAll();
   suscribirRealtime(obraId);
+  aplicarLogoObra(obraId);
+}
+
+// Muestra el logo propio de la obra elegida arriba a la izquierda; si la
+// obra no tiene uno cargado, se usa el ícono genérico de la app.
+function aplicarLogoObra(obraId) {
+  const img = $("#headerLogo");
+  if (!img) return;
+  const obra = byId(state.obras, obraId);
+  img.src = (obra && obra.logoUrl) || "favicon.svg";
 }
 
 // ---------- Tiempo real: avisar cuando otra persona cambia algo ----------
@@ -396,6 +406,16 @@ function bindGlobalHandlers() {
   $("#btnNuevaObra").addEventListener("click", () => openObraModal(null));
   $("#btnEditarObra").addEventListener("click", () => openObraModal(byId(state.obras, state.obraId)));
 
+  $("#obraLogoFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) mostrarPreviewLogoObra(URL.createObjectURL(file));
+  });
+  $("#btnQuitarLogoObra").addEventListener("click", () => {
+    $("#formObraModal").logoUrl.value = "";
+    $("#obraLogoFile").value = "";
+    mostrarPreviewLogoObra("");
+  });
+
   $("#formObraModal").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -403,6 +423,7 @@ function bindGlobalHandlers() {
     const proximaProbeta = fd.get("proximaProbeta") ? parseInt(fd.get("proximaProbeta"), 10) : null;
     if (editId) {
       const obra = byId(state.obras, editId);
+      const logoUrl = await subirLogoObraSiCorresponde(obra.id, fd.get("logoUrl"));
       Object.assign(obra, {
         nombre: fd.get("nombre").trim(),
         ubicacion: fd.get("ubicacion").trim(),
@@ -410,6 +431,7 @@ function bindGlobalHandlers() {
         director: fd.get("director").trim(),
         supervisorTerreno: fd.get("supervisorTerreno").trim(),
         proximaProbeta,
+        logoUrl,
       });
       await DB.put("obras", obra);
       await loadObras();
@@ -425,6 +447,7 @@ function bindGlobalHandlers() {
         proximaProbeta,
         creada: todayISO(),
       };
+      obra.logoUrl = await subirLogoObraSiCorresponde(obra.id, fd.get("logoUrl"));
       await DB.put("obras", obra);
       await seedObraCatalogo(obra.id);
       await loadObras();
@@ -543,10 +566,43 @@ function openObraModal(obra) {
     form.director.value = obra.director || "";
     form.supervisorTerreno.value = obra.supervisorTerreno || "";
     form.proximaProbeta.value = obra.proximaProbeta ?? "";
+    form.logoUrl.value = obra.logoUrl || "";
   } else {
     form.id.value = "";
+    form.logoUrl.value = "";
   }
+  mostrarPreviewLogoObra(form.logoUrl.value);
   openModal("#modalObra");
+}
+
+function mostrarPreviewLogoObra(url) {
+  const img = $("#obraLogoPreview");
+  const btnQuitar = $("#btnQuitarLogoObra");
+  if (url) {
+    img.src = url;
+    img.style.display = "block";
+    btnQuitar.style.display = "inline-block";
+  } else {
+    img.style.display = "none";
+    btnQuitar.style.display = "none";
+  }
+}
+
+// Sube (si se eligió un archivo nuevo) el logo de la obra a Supabase
+// Storage y devuelve su link público, o null si no hay logo.
+async function subirLogoObraSiCorresponde(obraId, logoUrlActual) {
+  const fileInput = $("#obraLogoFile");
+  if (fileInput.files && fileInput.files[0]) {
+    const file = fileInput.files[0];
+    const path = `${obraId}/${Date.now()}_${file.name}`;
+    const { error } = await supabaseClient.storage.from("logos").upload(path, file, { upsert: true });
+    if (error) {
+      toast("No se pudo subir el logo: " + error.message, "error");
+      return logoUrlActual || null;
+    }
+    return supabaseClient.storage.from("logos").getPublicUrl(path).data.publicUrl;
+  }
+  return logoUrlActual || null;
 }
 
 async function borrarObra(obraId) {

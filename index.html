@@ -31,7 +31,7 @@
 
 <header class="topbar">
   <a href="https://www.summit.com.uy/" target="_blank" rel="noopener noreferrer" title="Summit">
-    <img src="favicon.svg" alt="" class="brand-icon" />
+    <img id="headerLogo" src="favicon.svg" alt="" class="brand-icon" />
   </a>
   <h1>Control de Hormigón</h1>
   <div class="obra-selector">
@@ -620,6 +620,15 @@
       <div class="field" style="margin-bottom:14px">
         <label>Próxima probeta (numeración automática)</label>
         <input type="number" name="proximaProbeta" />
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>Logo de la obra (opcional, se muestra arriba a la izquierda cuando esta obra está seleccionada)</label>
+        <div class="row" style="align-items:center;gap:10px">
+          <img id="obraLogoPreview" alt="" style="width:36px;height:36px;border-radius:6px;object-fit:contain;background:#eef2ef;display:none" />
+          <input type="file" id="obraLogoFile" accept="image/*" />
+          <button type="button" id="btnQuitarLogoObra" class="ghost" style="display:none">Quitar logo</button>
+        </div>
+        <input type="hidden" name="logoUrl" />
       </div>
       <div class="row between">
         <button type="button" class="danger" id="btnBorrarObra" style="display:none">Borrar obra</button>
