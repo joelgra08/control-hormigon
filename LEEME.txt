@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.1.0
+Versión 2.1.1
 
 QUÉ ES
 ------
@@ -117,7 +117,8 @@ CÓMO FUNCIONA
 - "Programación": los llenados programados para los próximos días. Arriba a
   la derecha elegís Torre, Basamento o Unificado:
     * En Torre y en Basamento cargás cada llenado (fecha, hora de llegada,
-      si es volcado / bomba lanza / bomba de arrastre, tipo de hormigón,
+      si es volcado / bomba lanza / bomba de arrastre, tipo de hormigón
+      —se elige de un desplegable fijo, que incluye "A definir"—,
       elemento, m3 y notas). Al agregar uno, la fecha, la hora, el bombeado
       y el tipo de hormigón quedan cargados para el siguiente: solo cambiás
       elemento y m3 y apretás Enter.
