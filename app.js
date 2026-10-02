@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.1.1";
+const APP_VERSION = "2.2.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -500,6 +500,16 @@ function bindGlobalHandlers() {
   // Remitos
   $("#formRemito").addEventListener("submit", onSubmitRemito);
   $("#btnCancelarEdicion").addEventListener("click", resetRemitoForm);
+  // Fecha, N° de Remito y M3 del remito destraban "Agregar elemento al
+  // remito" apenas están los 3 completos, y el M3 además actualiza en vivo
+  // cuánto queda disponible.
+  const onCambioCabezal = () => {
+    actualizarBloqueoLinea();
+    renderLineasFormTable();
+  };
+  $("#fecha").addEventListener("input", onCambioCabezal);
+  $("#remitoNro").addEventListener("input", onCambioCabezal);
+  $("#m3Remito").addEventListener("input", onCambioCabezal);
   $("#btnAgregarLinea").addEventListener("click", onAgregarLinea);
   $("#btnCancelarLinea").addEventListener("click", resetLineaForm);
   $("#lin_elementoId").addEventListener("change", updateElementoPreview);
@@ -1527,6 +1537,21 @@ function leerFormLinea() {
 function onAgregarLinea() {
   const linea = leerFormLinea();
   if (!linea) return;
+
+  const m3Remito = getM3RemitoCabezal();
+  if (m3Remito !== null) {
+    const otras = state.lineasForm.reduce(
+      (a, l, idx) => a + (idx === state.editingLineaIdx ? 0 : (l.volumen || 0)),
+      0
+    );
+    const nuevoTotal = round2(otras + (linea.volumen || 0));
+    if (nuevoTotal > round2(m3Remito) + 0.001) {
+      const disponible = round2(m3Remito - otras);
+      toast(`Ese volumen supera lo disponible del remito: quedan ${fmtM3(disponible)} m³ de ${fmtM3(m3Remito)} m³`, "error");
+      return;
+    }
+  }
+
   if (state.editingLineaIdx !== null) {
     state.lineasForm[state.editingLineaIdx] = linea;
   } else {
@@ -1570,6 +1595,48 @@ function quitarLineaForm(idx) {
   renderLineasFormTable();
 }
 
+// Lee el M3 del remito (camión) tal cual está escrito en el cabezal en
+// este momento, aunque todavía no se haya guardado el remito.
+function getM3RemitoCabezal() {
+  const form = $("#formRemito");
+  const raw = (form.m3Remito.value || "").trim();
+  if (!raw) return null;
+  const v = parseFloat(raw.replace(",", "."));
+  return isNaN(v) || v <= 0 ? null : v;
+}
+
+// El cabezal se considera completo (y recién ahí se puede empezar a
+// agregar elementos) cuando están Fecha, N° de Remito y M3 del remito.
+function cabezalCompleto() {
+  const form = $("#formRemito");
+  return !!form.fecha.value.trim() && !!form.remitoNro.value.trim() && getM3RemitoCabezal() !== null;
+}
+
+// Bloquea/desbloquea el subformulario "Agregar elemento al remito" según
+// si el cabezal ya está completo. Para reducir el margen de error: así no
+// se puede empezar a cargar elementos sin antes tener Fecha, N° de Remito
+// y M3 del remito.
+function actualizarBloqueoLinea() {
+  const completo = cabezalCompleto();
+  const fieldset = $("#lineaFieldset");
+  if (fieldset) fieldset.disabled = !completo;
+  const hint = $("#lineaBloqueadaHint");
+  if (hint) hint.style.display = completo ? "none" : "block";
+}
+
+// ¿Ya existe otro remito con el mismo N° para el mismo proveedor en esta
+// obra? (excluilId es el remito que se está editando, para no compararse
+// contra sí mismo).
+function remitoNroDuplicado(remitoNro, proveedorId, excluirId) {
+  const nro = (remitoNro || "").trim();
+  if (!nro) return false;
+  return state.remitos.some((r) =>
+    r.id !== excluirId &&
+    (r.proveedorId || "") === (proveedorId || "") &&
+    (r.remitoNro || "").trim().toLowerCase() === nro.toLowerCase()
+  );
+}
+
 function renderLineasFormTable() {
   const tbody = $("#tablaLineasForm tbody");
   tbody.innerHTML = "";
@@ -1601,7 +1668,19 @@ function renderLineasFormTable() {
     tr.appendChild(tdAcc);
     tbody.appendChild(tr);
   });
-  $("#lineasFormTotal").textContent = state.lineasForm.length ? `${state.lineasForm.length} elemento(s) — Total ${fmtM3(total)} m³` : "";
+  const totalDiv = $("#lineasFormTotal");
+  const totalTxt = state.lineasForm.length ? `${state.lineasForm.length} elemento(s) — Total ${fmtM3(total)} m³` : "";
+  const m3Remito = getM3RemitoCabezal();
+  totalDiv.innerHTML = "";
+  if (totalTxt) totalDiv.appendChild(document.createTextNode(totalTxt));
+  if (m3Remito !== null) {
+    const restante = round2(m3Remito - total);
+    let color = "";
+    if (restante < -0.001) color = "color:var(--danger);font-weight:600";
+    else if (Math.abs(restante) < 0.001) color = "color:var(--primary);font-weight:600";
+    if (totalTxt) totalDiv.appendChild(document.createTextNode(" — "));
+    totalDiv.appendChild(el("span", color ? { style: color } : {}, `Disponible: ${fmtM3(restante)} m³ de ${fmtM3(m3Remito)} m³`));
+  }
 }
 
 // ---------- Remito (encabezado) ----------
@@ -1618,6 +1697,7 @@ function resetRemitoForm() {
   resetLineaForm();
   renderLineasFormTable();
   updateHormigonPreview();
+  actualizarBloqueoLinea();
 }
 
 async function onSubmitRemito(e) {
@@ -1634,9 +1714,25 @@ async function onSubmitRemito(e) {
   };
 
   if (!get("fecha")) return toast("Falta la fecha", "error");
+  if (!get("remitoNro")) return toast("Falta el N° de remito", "error");
+  const m3RemitoVal = getNum("m3Remito");
+  if (m3RemitoVal === null || m3RemitoVal <= 0) return toast("Falta el M3 del remito (camión)", "error");
   if (state.lineasForm.length === 0) return toast("Agregá al menos un elemento a este remito", "error");
 
   const remitoId = state.editingRemitoId || uid("rem");
+
+  if (remitoNroDuplicado(get("remitoNro"), get("proveedorId"), remitoId)) {
+    return toast(`Ya existe un remito N° ${get("remitoNro")} para este proveedor en esta obra`, "error");
+  }
+
+  const totalLineas = round2(state.lineasForm.reduce((a, l) => a + (l.volumen || 0), 0));
+  if (Math.abs(totalLineas - round2(m3RemitoVal)) > 0.001) {
+    return toast(
+      `La suma de los elementos (${fmtM3(totalLineas)} m³) no coincide con el M3 del remito (${fmtM3(m3RemitoVal)} m³). Si sobró hormigón, cargalo como un elemento "Desperdicio".`,
+      "error"
+    );
+  }
+
   const remito = {
     id: remitoId,
     obraId: state.obraId,
@@ -1706,6 +1802,7 @@ function editarRemito(remitoId) {
   resetLineaForm();
   renderLineasFormTable();
   updateHormigonPreview();
+  actualizarBloqueoLinea();
   showTab("remitos");
   form.scrollIntoView({ behavior: "smooth" });
 }

@@ -12,12 +12,14 @@ const ROLES_INFO = {
   asistente: "Asistente",
   probetas: "Probetas",
   proyecto_ejecutivo: "Proyecto Ejecutivo",
+  proveedor_hormigon: "Proveedor de hormigón",
 };
 
 function esAdmin() { return state.miPerfil?.rol === "administrador"; }
 function esAsistente() { return state.miPerfil?.rol === "asistente"; }
 function esProbetas() { return state.miPerfil?.rol === "probetas"; }
 function esProyectoEjecutivo() { return state.miPerfil?.rol === "proyecto_ejecutivo"; }
+function esProveedorHormigon() { return state.miPerfil?.rol === "proveedor_hormigon"; }
 function puedeAgregar() { return esAdmin() || esAsistente(); } // remitos y pedidos de hierro
 
 function mostrarLogin(mensaje) {
@@ -78,6 +80,15 @@ function aplicarPermisosUI() {
   // Proyecto Ejecutivo: solo puede ver Tarjeta diaria y Resumen mensual.
   if (esProyectoEjecutivo()) {
     showTab("tarjeta");
+  }
+
+  // Proveedor de hormigón: solo puede ver la Programación, vista Unificado,
+  // siempre de los próximos 14 días desde hoy (ver styles.css para lo que
+  // se le oculta: Torre/Basamento, fechas y exportar PDF).
+  if (esProveedorHormigon()) {
+    state.prog.zona = "TODAS";
+    showTab("programacion");
+    if (typeof renderProgramacion === "function") renderProgramacion();
   }
 
   // Campos que solo el administrador puede editar (temperatura del día,

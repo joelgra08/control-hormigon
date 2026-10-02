@@ -81,12 +81,12 @@
             <div class="hint" id="hormigonPreview"></div>
           </div>
           <div class="field">
-            <label>N° Remito</label>
-            <input type="text" name="remitoNro" />
+            <label>N° Remito *</label>
+            <input type="text" name="remitoNro" id="remitoNro" required />
           </div>
           <div class="field">
-            <label>M3 remito (camión)</label>
-            <input type="number" step="0.01" name="m3Remito" />
+            <label>M3 remito (camión) *</label>
+            <input type="number" step="0.01" min="0.01" name="m3Remito" id="m3Remito" required />
           </div>
           <div class="field">
             <label>Unidad móvil</label>
@@ -150,7 +150,11 @@
 
     <div class="panel solo-puede-agregar">
       <h3 style="margin-top:0">Agregar elemento al remito</h3>
+      <p class="hint" id="lineaBloqueadaHint" style="display:none;color:var(--danger);font-weight:600">
+        Completá primero Fecha, N° de Remito y M3 del remito en "Datos del remito" para poder agregar elementos.
+      </p>
       <form id="formLinea">
+        <fieldset id="lineaFieldset">
         <div class="form-grid wide">
           <div class="field">
             <label>Elemento *</label>
@@ -225,6 +229,7 @@
           <button type="button" id="btnAgregarLinea" class="primary">+ Agregar elemento</button>
           <button type="button" id="btnCancelarLinea" style="display:none">Cancelar</button>
         </div>
+        </fieldset>
       </form>
     </div>
 
@@ -286,7 +291,7 @@
           <button type="button" data-zona="TODAS">Unificado</button>
         </div>
       </div>
-      <p class="hint" style="margin-top:10px">Cargá por separado los llenados de Torre y de Basamento. La vista "Unificado" y el PDF juntan las dos zonas por día, ordenadas por hora, con el total de m³ de cada día.</p>
+      <p class="hint" id="progHintGeneral" style="margin-top:10px">Cargá por separado los llenados de Torre y de Basamento. La vista "Unificado" y el PDF juntan las dos zonas por día, ordenadas por hora, con el total de m³ de cada día.</p>
       <div id="progNoDisponible" class="empty-state" style="display:none">La programación todavía no está habilitada en el servidor: falta crear la tabla "programacion" en Supabase (script supabase/programacion.sql).</div>
       <div id="progAvisoUnificado" class="hint" style="display:none">Para agregar o editar llenados elegí Torre o Basamento. Desde acá también podés tocar el lápiz de una fila y te lleva a su zona.</div>
     </div>
@@ -336,9 +341,9 @@
     </div>
 
     <div class="panel">
-      <div class="row" style="margin-bottom:12px;align-items:flex-end">
-        <div class="field"><label>Desde</label><input type="date" id="progDesde" /></div>
-        <div class="field"><label>Hasta</label><input type="date" id="progHasta" /></div>
+      <div class="row" style="margin-bottom:12px;align-items:flex-end" id="progControlesFecha">
+        <div class="field" id="progDesdeField"><label>Desde</label><input type="date" id="progDesde" /></div>
+        <div class="field" id="progHastaField"><label>Hasta</label><input type="date" id="progHasta" /></div>
         <button type="button" id="btnProg14" class="ghost">Próximos 14 días</button>
         <button type="button" id="btnProgExportarPDF" class="primary" style="margin-left:auto">🖨 Exportar PDF (Torre + Basamento)</button>
       </div>

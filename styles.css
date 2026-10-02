@@ -229,6 +229,11 @@ button.ghost:hover { background: #f3f4f6; }
 
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Fieldset usado para bloquear "Agregar elemento al remito" hasta que el
+   cabezal del remito (fecha, N° remito, m3) esté completo. */
+fieldset { border: none; margin: 0; padding: 0; }
+fieldset:disabled { opacity: 0.5; }
+
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .row.between { justify-content: space-between; }
 .row.end { justify-content: flex-end; }
@@ -424,7 +429,9 @@ body[data-rol="asistente"] .solo-admin,
 body[data-rol="probetas"] .solo-admin,
 body[data-rol="probetas"] .solo-puede-agregar,
 body[data-rol="proyecto_ejecutivo"] .solo-admin,
-body[data-rol="proyecto_ejecutivo"] .solo-puede-agregar {
+body[data-rol="proyecto_ejecutivo"] .solo-puede-agregar,
+body[data-rol="proveedor_hormigon"] .solo-admin,
+body[data-rol="proveedor_hormigon"] .solo-puede-agregar {
   display: none !important;
 }
 
@@ -435,6 +442,22 @@ body[data-rol="probetas"] nav.tabs button:not([data-tab="probetas"]) {
 
 /* Proyecto Ejecutivo: solo ve Tarjeta diaria y Resumen mensual */
 body[data-rol="proyecto_ejecutivo"] nav.tabs button:not([data-tab="tarjeta"]):not([data-tab="resumen"]) {
+  display: none !important;
+}
+
+/* Proveedor de hormigón: solo ve la Programación, y dentro de ahí nada
+   más que la vista Unificado (sin Torre/Basamento, sin elegir fechas y
+   sin exportar PDF) de los próximos 14 días desde hoy. */
+body[data-rol="proveedor_hormigon"] nav.tabs button:not([data-tab="programacion"]) {
+  display: none !important;
+}
+body[data-rol="proveedor_hormigon"] #progZonaTabs button[data-zona="TORRE"],
+body[data-rol="proveedor_hormigon"] #progZonaTabs button[data-zona="BASAMENTO"],
+body[data-rol="proveedor_hormigon"] #progDesdeField,
+body[data-rol="proveedor_hormigon"] #progHastaField,
+body[data-rol="proveedor_hormigon"] #btnProg14,
+body[data-rol="proveedor_hormigon"] #btnProgExportarPDF,
+body[data-rol="proveedor_hormigon"] #progHintGeneral {
   display: none !important;
 }
 

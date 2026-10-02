@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.1.1
+Versión 2.2.0
 
 QUÉ ES
 ------
@@ -16,6 +16,26 @@ App para cargar remitos de hormigón de cualquier obra y sacar de ahí:
   Ø32 por tonelada, o perfiles por unidad), con la factura adjunta
 - Export a Excel (.xlsx) con el detalle completo de remitos, y otro export
   simplificado para control de remitos vs. facturas, y export de la nómina
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.2
+----------------------------
+- Nuevo rol "Proveedor de hormigón": solo ve la pestaña "Programación", y
+  dentro de ella nada más que la vista "Unificado" de los próximos 14 días
+  desde hoy (sin Torre/Basamento por separado, sin poder elegir otras
+  fechas y sin exportar el PDF). No ve ninguna otra pestaña ni dato de la
+  obra. Como todos los roles de solo ver, no puede agregar, editar ni
+  borrar nada.
+- Más control al cargar un remito, para reducir errores:
+  * El M3 del remito (camión) y el N° de Remito pasan a ser obligatorios.
+  * No se puede repetir el mismo N° de Remito para el mismo proveedor
+    dentro de la misma obra.
+  * No se puede empezar a agregar elementos al remito hasta tener cargados
+    Fecha, N° de Remito y M3 del remito.
+  * A medida que agregás elementos se muestra cuánto m³ queda disponible,
+    y no se puede agregar un elemento que haga pasarse del M3 del remito.
+  * Al guardar, la suma de los elementos tiene que coincidir exacto con el
+    M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
+    "Desperdicio" (Referencias → Elementos) hasta completar el total.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.1
 ----------------------------
