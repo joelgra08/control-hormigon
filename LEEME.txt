@@ -124,6 +124,9 @@ CÓMO FUNCIONA
     * Cada fila tiene cuatro botones: editar (✎), duplicar (⧉, carga los
       mismos datos como un llenado nuevo), pasar al día hábil siguiente (⏭,
       para cuando algo se corre un día) y borrar (✕).
+    * Para reprogramar un llenado también podés arrastrar su fila con el
+      mouse y soltarla sobre otro día (los días hábiles vacíos del rango
+      aparecen como renglones grises, justamente para poder soltar ahí).
     * "Día sin llenados" deja asentado un día sin hormigón (lluvia, paro);
       sale en rojo, y solo se muestra en el PDF si ese día no quedó ningún
       llenado de ninguna de las dos zonas.

@@ -467,3 +467,13 @@ body[data-rol="proyecto_ejecutivo"] nav.tabs button:not([data-tab="tarjeta"]):no
 .prog-sin td { text-align: center; color: var(--danger); font-weight: 600; background: #fdecea; }
 td.prog-acciones { text-align: right; width: 1%; background: #fff; color: var(--text); }
 td.prog-acciones button { padding: 3px 7px; }
+
+/* Arrastrar un llenado a otro día */
+tr.prog-arrastrable { cursor: grab; }
+tr.prog-arrastrando { opacity: 0.4; }
+.prog-dia.prog-destino { outline: 3px dashed var(--warn); outline-offset: -3px; }
+.prog-dia.prog-destino .prog-dia-head { background: var(--warn); }
+.prog-dia-vacio { border-style: dashed; margin-bottom: 8px; }
+.prog-dia-vacio .prog-dia-head { background: #eef2ef; color: var(--muted); font-weight: 600; }
+.prog-soltar { display: none; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px; }
+.prog-en-arrastre .prog-soltar { display: block; }

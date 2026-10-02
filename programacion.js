@@ -233,8 +233,12 @@ async function progBorrar(fila) {
   toast("Llenado borrado", "ok");
 }
 
-async function progPasarAlSiguiente(fila) {
-  const nueva = { ...fila, fecha: progSiguienteHabil(fila.fecha) };
+function progPasarAlSiguiente(fila) { return progMoverA(fila, progSiguienteHabil(fila.fecha)); }
+
+// Cambia de día un llenado (botón ⏭ o arrastrando la fila a otro día).
+async function progMoverA(fila, fecha) {
+  if (!progPuedeEditar() || !fecha || fecha === fila.fecha) return;
+  const nueva = { ...fila, fecha };
   try { await DB.put("programacion", nueva); } catch (err) { return; }
   const idx = state.programacion.findIndex((r) => r.id === fila.id);
   if (idx >= 0) state.programacion[idx] = nueva;
@@ -243,6 +247,8 @@ async function progPasarAlSiguiente(fila) {
 }
 
 // ---------- Vista ----------
+let progArrastrandoId = null; // id del llenado que se está arrastrando a otro día
+
 function progSetZona(zona) {
   state.prog.zona = zona;
   if (state.prog.editingId) progResetForm(true);
@@ -283,6 +289,22 @@ function renderProgramacion() {
   $("#progResumen").textContent = todas.length === 0 ? "" :
     `Total del período: ${fmtM3(suma("TORRE") + suma("BASAMENTO"))} m³ — Torre ${fmtM3(suma("TORRE"))} m³ · Basamento ${fmtM3(suma("BASAMENTO"))} m³`;
 
+  // Quien puede editar ve también los días hábiles del rango que todavía
+  // están vacíos: son el lugar donde soltar un llenado al arrastrarlo.
+  if (editor && state.prog.desde && state.prog.hasta && state.prog.desde <= state.prog.hasta) {
+    const porFecha = new Map(dias.map((d) => [d.fecha, d]));
+    const completos = [];
+    let f = state.prog.desde;
+    for (let i = 0; i < 92 && f <= state.prog.hasta; i++, f = progSumarDias(f, 1)) {
+      if (porFecha.has(f)) completos.push(porFecha.get(f));
+      else if (![0, 6].includes(progParse(f).getDay())) completos.push({ fecha: f, filas: [], filasVisibles: [], total: 0 });
+    }
+    dias.filter((d) => d.fecha >= f).forEach((d) => completos.push(d));
+    dias.length = 0;
+    dias.push(...completos);
+  }
+  $("#progAyudaArrastre").style.display = editor && dias.some((d) => d.filas.length > 0) ? "block" : "none";
+
   if (dias.length === 0) {
     root.appendChild(el("div", { class: "empty-state" },
       unificado ? "No hay llenados programados en ese rango de fechas."
@@ -291,11 +313,36 @@ function renderProgramacion() {
   }
 
   dias.forEach((dia) => {
-    const bloque = el("div", { class: "prog-dia" });
+    const vacio = dia.filas.length === 0;
+    const bloque = el("div", { class: "prog-dia" + (vacio ? " prog-dia-vacio" : "") });
     bloque.appendChild(el("div", { class: "prog-dia-head" }, [
       el("span", {}, `${progDiaNombre(dia.fecha)} ${progFechaCorta(dia.fecha)}`),
-      el("span", {}, `Total ${fmtM3(dia.total)} m³`),
+      el("span", {}, vacio ? "Sin llenados programados" : `Total ${fmtM3(dia.total)} m³`),
     ]));
+    if (editor) {
+      // Cada día es un destino donde soltar una fila arrastrada.
+      bloque.addEventListener("dragover", (e) => {
+        if (!progArrastrandoId) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        bloque.classList.add("prog-destino");
+      });
+      bloque.addEventListener("dragleave", (e) => {
+        if (!bloque.contains(e.relatedTarget)) bloque.classList.remove("prog-destino");
+      });
+      bloque.addEventListener("drop", (e) => {
+        e.preventDefault();
+        bloque.classList.remove("prog-destino");
+        const fila = byId(state.programacion, progArrastrandoId);
+        progArrastrandoId = null;
+        if (fila) progMoverA(fila, dia.fecha);
+      });
+    }
+    if (vacio) {
+      bloque.appendChild(el("div", { class: "prog-soltar" }, "Soltá acá para pasar el llenado a este día"));
+      root.appendChild(bloque);
+      return;
+    }
     const tabla = el("table");
     const cols = ["Hora llegada", "Bombeado", "Tipo hormigón", "Elemento", "m³", "Notas"];
     if (unificado) cols.push("Zona");
@@ -320,6 +367,22 @@ function renderProgramacion() {
         if (unificado) tr.appendChild(el("td", {}, PROG_ZONAS[r.zona] || r.zona));
       }
       if (editor) {
+        tr.draggable = true;
+        tr.classList.add("prog-arrastrable");
+        tr.title = "Arrastrá la fila a otro día para reprogramarla";
+        tr.addEventListener("dragstart", (e) => {
+          progArrastrandoId = r.id;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", r.id);
+          tr.classList.add("prog-arrastrando");
+          root.classList.add("prog-en-arrastre");
+        });
+        tr.addEventListener("dragend", () => {
+          progArrastrandoId = null;
+          tr.classList.remove("prog-arrastrando");
+          root.classList.remove("prog-en-arrastre");
+          $all(".prog-destino", root).forEach((b) => b.classList.remove("prog-destino"));
+        });
         const td = el("td", { class: "prog-acciones" });
         const boton = (txt, titulo, fn, extra = "") => {
           const b = el("button", { class: "ghost" + extra, title: titulo, type: "button" }, txt);
