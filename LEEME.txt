@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.0.0
+Versión 2.1.0
 
 QUÉ ES
 ------
@@ -16,6 +16,16 @@ App para cargar remitos de hormigón de cualquier obra y sacar de ahí:
   Ø32 por tonelada, o perfiles por unidad), con la factura adjunta
 - Export a Excel (.xlsx) con el detalle completo de remitos, y otro export
   simplificado para control de remitos vs. facturas, y export de la nómina
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.1
+----------------------------
+Se agregó la pestaña "Programación": la planilla de pedidos de hormigón a
+futuro que se le manda a la hormigonera, cargada por separado para Torre y
+para Basamento y exportable a PDF entre dos fechas (ver "Cómo funciona").
+Para que funcione hay que crear una sola vez la tabla "programacion" en
+Supabase, pegando en el SQL Editor el script "supabase/programacion.sql".
+Mientras esa tabla no exista, la pestaña avisa que falta crearla y el resto
+de la app sigue funcionando igual que siempre.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.0
 ----------------------------
@@ -103,6 +113,32 @@ CÓMO FUNCIONA
   elementos se modificaron en obra respecto al proyecto. Cualquier otro
   elemento puede habilitarse para esto desde Referencias → Elementos,
   tildando "¿Puede quedar modificado?".
+
+- "Programación": los llenados programados para los próximos días. Arriba a
+  la derecha elegís Torre, Basamento o Unificado:
+    * En Torre y en Basamento cargás cada llenado (fecha, hora de llegada,
+      si es volcado / bomba lanza / bomba de arrastre, tipo de hormigón,
+      elemento, m3 y notas). Al agregar uno, la fecha, la hora, el bombeado
+      y el tipo de hormigón quedan cargados para el siguiente: solo cambiás
+      elemento y m3 y apretás Enter.
+    * Cada fila tiene cuatro botones: editar (✎), duplicar (⧉, carga los
+      mismos datos como un llenado nuevo), pasar al día hábil siguiente (⏭,
+      para cuando algo se corre un día) y borrar (✕).
+    * Para reprogramar un llenado también podés arrastrar su fila con el
+      mouse y soltarla sobre otro día (los días hábiles vacíos del rango
+      aparecen como renglones grises, justamente para poder soltar ahí).
+    * "Día sin llenados" deja asentado un día sin hormigón (lluvia, paro);
+      sale en rojo, y solo se muestra en el PDF si ese día no quedó ningún
+      llenado de ninguna de las dos zonas.
+    * "Unificado" muestra las dos zonas juntas por día, ordenadas por hora,
+      tal cual sale en el PDF.
+  Elegís Desde / Hasta (o "Próximos 14 días") y "🖨 Exportar PDF" genera la
+  planilla para la hormigonera: un bloque por día con sus llenados de Torre y
+  Basamento juntos, la bomba resaltada en amarillo, la columna Zona y el
+  total de m3 del día. El archivo se descarga como
+  "AAAA.MM.DD programacion hormigon OBRA.pdf".
+  Agregar, editar y borrar lo pueden hacer el Administrador y el Asistente;
+  el Controller solo ve y exporta.
 
 - "Tarjeta diaria": elegís una fecha y tocás "🔍 Buscar" para armar la
   tarjeta del día (temperatura, m3 total, m3 bombeado, m3 desperdicio,

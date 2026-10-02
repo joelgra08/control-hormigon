@@ -37,6 +37,7 @@ const STORES = {
   personal: "personal",
   pedidosHierro: "pedidos_hierro",
   pedidoHierroLineas: "pedido_hierro_lineas",
+  programacion: "programacion",
   config: null, // ver nota arriba: vive en localStorage, no en Supabase
 };
 

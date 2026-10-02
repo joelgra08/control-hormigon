@@ -437,3 +437,43 @@ body[data-rol="probetas"] nav.tabs button:not([data-tab="probetas"]) {
 body[data-rol="proyecto_ejecutivo"] nav.tabs button:not([data-tab="tarjeta"]):not([data-tab="resumen"]) {
   display: none !important;
 }
+
+/* =========================================================
+   PROGRAMACIÓN DE HORMIGÓN
+   ========================================================= */
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { border: none; border-radius: 0; border-right: 1px solid var(--border); padding: 7px 16px; background: #fff; }
+.seg button:last-child { border-right: none; }
+.seg button.active { background: var(--primary); color: #fff; font-weight: 600; }
+
+.prog-dia { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+.prog-dia-head {
+  display: flex; justify-content: space-between; gap: 12px;
+  background: var(--primary); color: #fff; font-weight: 600; padding: 7px 10px;
+}
+.prog-dia thead th { position: static; background: #d6ebdd; border-bottom: 1px solid var(--border); }
+.prog-dia tbody tr:last-child td { border-bottom: none; }
+.prog-dia { overflow-x: auto; }
+.prog-dia table { table-layout: fixed; min-width: 860px; }
+.prog-dia th.c-hora { width: 100px; }
+.prog-dia th.c-bomb { width: 160px; }
+.prog-dia th.c-tipo { width: 150px; }
+.prog-dia th.c-m3 { width: 90px; text-align: right; }
+.prog-dia th.c-notas { width: 22%; }
+.prog-dia th.c-zona { width: 100px; }
+.prog-dia th.c-acc { width: 132px; }
+.prog-dia tbody td { white-space: normal; }
+.prog-bomba { background: #fff200; font-weight: 600; padding: 1px 6px; border-radius: 3px; }
+.prog-sin td { text-align: center; color: var(--danger); font-weight: 600; background: #fdecea; }
+td.prog-acciones { text-align: right; width: 1%; background: #fff; color: var(--text); }
+td.prog-acciones button { padding: 3px 7px; }
+
+/* Arrastrar un llenado a otro día */
+tr.prog-arrastrable { cursor: grab; }
+tr.prog-arrastrando { opacity: 0.4; }
+.prog-dia.prog-destino { outline: 3px dashed var(--warn); outline-offset: -3px; }
+.prog-dia.prog-destino .prog-dia-head { background: var(--warn); }
+.prog-dia-vacio { border-style: dashed; margin-bottom: 8px; }
+.prog-dia-vacio .prog-dia-head { background: #eef2ef; color: var(--muted); font-weight: 600; }
+.prog-soltar { display: none; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px; }
+.prog-en-arrastre .prog-soltar { display: block; }
