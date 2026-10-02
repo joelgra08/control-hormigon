@@ -14,7 +14,18 @@
 
 const PROG_ZONAS = { TORRE: "Torre", BASAMENTO: "Basamento" };
 const PROG_BOMBEADO = ["Volcado", "Bomba Lanza", "Bomba de arrastre"];
-const PROG_HORMIGONES_BASE = ["C35 pp5-14 A15", "C35 pp14-20 A18", "C45 pp5-14 A18", "C30 pp14-20 A15"];
+// Tipos de hormigón del desplegable, en el orden en que se muestran.
+const PROG_HORMIGONES = [
+  "C20 pp14-20 A15",
+  "C25 pp14-20 A15",
+  "C25 pp14-20 A18",
+  "C30 pp14-20 A15",
+  "C45 pp5-14 A15",
+  "C35 pp14-20 A18",
+  "C35 pp5-14 A15",
+  "C45 pp5-14 A18",
+  "A definir",
+];
 const PROG_DIAS = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
 const PROG_MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
 const PROG_MOTIVO_DEFAULT = "Sin llenados por lluvia";
@@ -126,13 +137,18 @@ function progAgruparPorDia(filas) {
 // ---------- Formulario ----------
 function progForm() { return $("#formProgramacion"); }
 
-function progActualizarDatalist() {
-  const dl = $("#progHormigonesList");
-  if (!dl) return;
-  const usados = state.programacion.map((r) => (r.tipoHormigon || "").trim()).filter(Boolean);
-  const opciones = Array.from(new Set([...usados, ...PROG_HORMIGONES_BASE])).sort((a, b) => a.localeCompare(b));
-  dl.innerHTML = "";
-  opciones.forEach((o) => dl.appendChild(el("option", { value: o })));
+// Arma el desplegable de tipo de hormigón. Si el valor que hay que mostrar
+// no está en la lista (un llenado cargado antes con otro texto), se agrega
+// al final para no perderlo al editar esa fila.
+function progRenderHormigones(valor) {
+  const sel = progForm().prog_hormigon;
+  const actual = valor !== undefined ? (valor || "") : sel.value;
+  const opciones = [...PROG_HORMIGONES];
+  if (actual && !opciones.includes(actual)) opciones.push(actual);
+  sel.innerHTML = "";
+  sel.appendChild(el("option", { value: "" }, "Seleccionar..."));
+  opciones.forEach((o) => sel.appendChild(el("option", { value: o }, o)));
+  sel.value = actual;
 }
 
 function progOnSinLlenadosChange() {
@@ -175,7 +191,7 @@ function progCargarEnForm(fila, comoNuevo) {
   f.prog_fecha.value = fila.fecha;
   f.prog_hora.value = fila.hora || "";
   f.prog_bombeado.value = PROG_BOMBEADO.includes(fila.bombeado) ? fila.bombeado : PROG_BOMBEADO[0];
-  f.prog_hormigon.value = fila.tipoHormigon || "";
+  progRenderHormigones(fila.tipoHormigon || "");
   f.prog_elemento.value = fila.elemento || "";
   f.prog_m3.value = fila.m3 ?? "";
   f.prog_notas.value = fila.notas || "";
@@ -195,6 +211,7 @@ async function progOnSubmit(e) {
   if (!fecha) return toast("Falta la fecha", "error");
   const m3 = f.prog_m3.value === "" ? null : Number(f.prog_m3.value);
   if (!sin) {
+    if (!f.prog_hormigon.value) { f.prog_hormigon.focus(); return toast("Falta el tipo de hormigón", "error"); }
     if (!f.prog_elemento.value.trim()) { f.prog_elemento.focus(); return toast("Falta el elemento", "error"); }
     if (m3 === null || isNaN(m3) || m3 <= 0) { f.prog_m3.focus(); return toast("Faltan los m3", "error"); }
   }
@@ -205,7 +222,7 @@ async function progOnSubmit(e) {
     fecha,
     hora: sin ? null : (f.prog_hora.value || null),
     bombeado: sin ? null : f.prog_bombeado.value,
-    tipoHormigon: sin ? null : (f.prog_hormigon.value.trim() || null),
+    tipoHormigon: sin ? null : (f.prog_hormigon.value || null),
     elemento: sin ? null : f.prog_elemento.value.trim(),
     m3: sin ? null : m3,
     notas: f.prog_notas.value.trim() || (sin ? PROG_MOTIVO_DEFAULT : null),
@@ -278,7 +295,7 @@ function renderProgramacion() {
   if ($("#progHasta").value !== state.prog.hasta) $("#progHasta").value = state.prog.hasta;
   if (!unificado) progActualizarTituloForm();
   if (!progForm().prog_fecha.value) progForm().prog_fecha.value = progHoy();
-  progActualizarDatalist();
+  progRenderHormigones();
 
   const filas = progFilas(zona, state.prog.desde, state.prog.hasta);
   const dias = progAgruparPorDia(filas);
@@ -526,6 +543,7 @@ function bindProgramacionHandlers() {
   const sel = f.prog_bombeado;
   sel.innerHTML = "";
   PROG_BOMBEADO.forEach((b) => sel.appendChild(el("option", { value: b }, b)));
+  progRenderHormigones("");
 
   $all("#progZonaTabs button").forEach((b) => b.addEventListener("click", () => progSetZona(b.dataset.zona)));
   f.addEventListener("submit", progOnSubmit);
