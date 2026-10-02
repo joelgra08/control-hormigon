@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.0.0";
+const APP_VERSION = "2.1.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -31,6 +31,9 @@ const state = {
   probetasFiltro: { desde: "", hasta: "" },
   filtro: { desde: "", hasta: "", elementoId: "", proveedorId: "" },
   hierroFiltro: { desde: "", hasta: "" },
+  programacion: [],             // llenados programados (ver programacion.js)
+  programacionDisponible: true, // false si la tabla todavía no existe en el servidor
+  prog: { zona: "TORRE", desde: progHoy(), hasta: progSumarDias(progHoy(), 13), editingId: null },
 };
 
 // Filas actualmente en modo edición en las tablas de Referencias / Personal.
@@ -256,6 +259,7 @@ async function loadObraData(obraId) {
   state.personal = f(personal);
   state.pedidosHierro = f(pedidosHierro);
   state.pedidoHierroLineas = pedidoHierroLineas.filter((l) => byId(state.pedidosHierro, l.pedidoId) || l.obraId === obraId);
+  await cargarProgramacion(obraId);
 }
 
 async function setObraActiva(obraId) {
@@ -292,7 +296,9 @@ function suscribirRealtime(obraId) {
     realtimeChannel = null;
   }
   let canal = supabaseClient.channel(`obra-${obraId}`);
-  TABLAS_REALTIME.forEach((tabla) => {
+  // "programacion" solo se escucha si la tabla ya existe en el servidor.
+  const tablas = state.programacionDisponible ? [...TABLAS_REALTIME, "programacion"] : TABLAS_REALTIME;
+  tablas.forEach((tabla) => {
     canal = canal.on(
       "postgres_changes",
       { event: "*", schema: "public", table: tabla, filter: `obra_id=eq.${obraId}` },
@@ -396,6 +402,7 @@ function renderAll() {
   renderProbetas();
   resetHierroForm();
   renderHierro();
+  renderProgramacion();
 }
 
 // ---------- Tabs ----------
@@ -582,6 +589,9 @@ function bindGlobalHandlers() {
 
   // Catálogo / Personal
   bindCatalogoHandlers();
+
+  // Programación de hormigón
+  bindProgramacionHandlers();
 }
 
 function openObraModal(obra) {
@@ -648,6 +658,7 @@ async function borrarObra(obraId) {
   for (const it of itemsHierro.filter((x) => pedidoHierroIds.has(x.pedidoId))) await DB.delete("pedidoHierroLineas", it.id);
 
   const stores = ["remitos", "catalogoElementos", "catalogoHormigones", "catalogoProveedores", "catalogoCuadrillas", "catalogoColocacion", "catalogoEquipos", "diasExtra", "personalMensual", "personal", "pedidosHierro"];
+  if (state.programacionDisponible) stores.push("programacion");
   for (const s of stores) {
     const all = await DB.getAll(s);
     for (const item of all.filter((x) => x.obraId === obraId)) await DB.delete(s, item.id);
@@ -2695,8 +2706,14 @@ function base64ToBlob(dataUrl) {
   return new Blob([bytes], { type: mime });
 }
 
+// La tabla de programación se agregó en la versión 2.1: si todavía no fue
+// creada en el servidor, se saltea para no romper la copia de seguridad.
+function storesParaBackup() {
+  return Object.keys(STORES).filter((s) => s !== "programacion" || state.programacionDisponible);
+}
+
 async function exportarBackupJSON() {
-  const stores = Object.keys(STORES);
+  const stores = storesParaBackup();
   const data = {};
   for (const s of stores) {
     // Las facturas adjuntas (pedidosHierro.facturaPath) viven en Supabase
@@ -2723,7 +2740,7 @@ async function restaurarBackupJSON(file) {
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    const stores = Object.keys(STORES);
+    const stores = storesParaBackup();
     for (const s of stores) {
       if (!Array.isArray(data[s])) continue;
       await DB.clear(s);
