@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.2.0
+Versión 2.2.1
 
 QUÉ ES
 ------
@@ -36,6 +36,16 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.2.1
+-------------------------------
+- Al cargar un elemento de tipo Pilar o Pantalla en un remito, si en
+  "Nomenclatura" se pone un código que ya se usó antes (por ejemplo F09,
+  G08, PT01), las medidas (Largo, Ancho, Altura) se completan solas con
+  las del último registro cargado con ese mismo código. Si ese código
+  nunca se cargó antes, o el elemento no es Pilar/Pantalla, no se
+  completa nada. Si ya habías escrito alguna medida a mano para esa
+  línea, no se pisa.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.1
 ----------------------------

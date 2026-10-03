@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.2.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -513,6 +513,8 @@ function bindGlobalHandlers() {
   $("#btnAgregarLinea").addEventListener("click", onAgregarLinea);
   $("#btnCancelarLinea").addEventListener("click", resetLineaForm);
   $("#lin_elementoId").addEventListener("change", updateElementoPreview);
+  $("#lin_elementoId").addEventListener("change", onCambioNomenclatura);
+  $("#lin_nomenclatura").addEventListener("input", onCambioNomenclatura);
   $("#lin_largoCm").addEventListener("input", onCambioLargoAncho);
   $("#lin_anchoCm").addEventListener("input", onCambioLargoAncho);
   $("#lin_areaM2").addEventListener("input", onCambioAreaOAltura);
@@ -1461,6 +1463,55 @@ function onCambioAreaOAltura() {
 
 function onInputVolumenManual() {
   volumenAutoLock = $("#lin_volumen").value.trim() !== "";
+}
+
+// ---------- Dimensiones de Pilares/Pantallas desde registros previos ----------
+// Pilares y pantallas se repiten con el mismo número (Nomenclatura, ej:
+// "F09") y la misma sección en toda la obra. En vez de pedirle a Joel una
+// lista aparte, buscamos entre las líneas YA CARGADAS de esta obra si ese
+// mismo elemento+nomenclatura tiene Largo/Ancho/Altura, y si los tiene, se
+// los copiamos (si hay varias, usamos la del remito más reciente). Nunca
+// pisa datos que el usuario ya haya escrito a mano en este formulario.
+function esPilarOPantalla(elementoId) {
+  const elem = byId(state.catalogo.elementos, elementoId);
+  if (!elem) return false;
+  const nombre = (elem.nombre || "").trim().toUpperCase();
+  return nombre === "PILAR" || nombre === "PANTALLA";
+}
+
+function buscarDimensionesHistoricas(elementoId, nomenclatura) {
+  const nom = (nomenclatura || "").trim().toUpperCase();
+  if (!nom || !esPilarOPantalla(elementoId)) return null;
+
+  const candidatas = state.lineas.filter(
+    (l) => l.elementoId === elementoId && (l.nomenclatura || "").trim().toUpperCase() === nom
+      && l.largoCm != null && l.anchoCm != null && l.alturaCm != null
+  );
+  if (candidatas.length === 0) return null;
+
+  candidatas.sort((a, b) => {
+    const ra = byId(state.remitos, a.remitoId), rb = byId(state.remitos, b.remitoId);
+    const fa = (ra && ra.fecha) || "", fb = (rb && rb.fecha) || "";
+    return fa < fb ? 1 : fa > fb ? -1 : 0;
+  });
+  const { largoCm, anchoCm, alturaCm } = candidatas[0];
+  return { largoCm, anchoCm, alturaCm };
+}
+
+function onCambioNomenclatura() {
+  const largoVacio = $("#lin_largoCm").value.trim() === "";
+  const anchoVacio = $("#lin_anchoCm").value.trim() === "";
+  const alturaVacio = $("#lin_alturaCm").value.trim() === "";
+  if (!largoVacio || !anchoVacio || !alturaVacio) return; // ya hay algo cargado a mano: no lo tocamos
+
+  const dim = buscarDimensionesHistoricas($("#lin_elementoId").value, $("#lin_nomenclatura").value);
+  if (!dim) return;
+
+  $("#lin_largoCm").value = dim.largoCm;
+  $("#lin_anchoCm").value = dim.anchoCm;
+  $("#lin_alturaCm").value = dim.alturaCm;
+  onCambioLargoAncho();
+  onCambioAreaOAltura();
 }
 
 // ---------- Probetas automáticas ----------
