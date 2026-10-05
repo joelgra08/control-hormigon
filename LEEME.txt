@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.3.1
+Versión 2.3.2
 
 QUÉ ES
 ------
@@ -36,6 +36,15 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.3.2
+-------------------------------------------------------
+- Aviso a Cielo Azul más elaborado: por defecto descarga un borrador
+  (.eml) con el recuadro del día igual al del PDF (hora, bombeado, tipo,
+  elemento, m3, notas, zona y total), con la fila modificada resaltada.
+  Al reprogramar muestra los dos días; al borrar, la fila tachada. Se
+  abre con doble clic en Outlook como mensaje nuevo (no se envía solo).
+  El selector junto a la casilla permite volver al texto simple (mailto).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.3.1
 -------------------------------------------------------
