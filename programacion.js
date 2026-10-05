@@ -536,6 +536,150 @@ function exportarProgramacionPDF() {
   doc.save(`${fmtFechaArchivo(desde)} programacion hormigon ${nombreObra}`.trim() + ".pdf");
 }
 
+// ---------- Word para Tránsito (media calzada en los días con bomba) ----------
+// Se arma el .docx a mano (un .docx es un zip con unos pocos XML), sin
+// librerías externas. El zip va "sin comprimir" (STORE), que Word acepta.
+const TRANSITO_CALLES = ["Chiverta", "Bvar Artigas"];
+
+function zipCrc32(bytes) {
+  if (!zipCrc32.tabla) {
+    zipCrc32.tabla = new Uint32Array(256).map((_, n) => {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      return c >>> 0;
+    });
+  }
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = zipCrc32.tabla[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function zipSinComprimir(archivos) {
+  const enc = new TextEncoder();
+  const partes = [], central = [];
+  let offset = 0;
+  archivos.forEach(({ nombre, contenido }) => {
+    const n = enc.encode(nombre), d = enc.encode(contenido), crc = zipCrc32(d);
+    const loc = new DataView(new ArrayBuffer(30));
+    loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true);
+    loc.setUint16(8, 0, true); loc.setUint16(10, 0, true); loc.setUint16(12, 0x21, true);
+    loc.setUint32(14, crc, true); loc.setUint32(18, d.length, true); loc.setUint32(22, d.length, true);
+    loc.setUint16(26, n.length, true); loc.setUint16(28, 0, true);
+    partes.push(new Uint8Array(loc.buffer), n, d);
+    const cen = new DataView(new ArrayBuffer(46));
+    cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true);
+    cen.setUint16(8, 0x0800, true); cen.setUint16(10, 0, true); cen.setUint16(12, 0, true); cen.setUint16(14, 0x21, true);
+    cen.setUint32(16, crc, true); cen.setUint32(20, d.length, true); cen.setUint32(24, d.length, true);
+    cen.setUint16(28, n.length, true); cen.setUint32(42, offset, true);
+    central.push(new Uint8Array(cen.buffer), n);
+    offset += 30 + n.length + d.length;
+  });
+  const tamCentral = central.reduce((a, b) => a + b.length, 0);
+  const fin = new DataView(new ArrayBuffer(22));
+  fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, archivos.length, true); fin.setUint16(10, archivos.length, true);
+  fin.setUint32(12, tamCentral, true); fin.setUint32(16, offset, true);
+  return new Blob([...partes, ...central, new Uint8Array(fin.buffer)],
+    { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+}
+
+const xmlEsc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function wRun(texto, { negrita = false, rojo = false, tam = 24 } = {}) {
+  return `<w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>${negrita ? "<w:b/>" : ""}${rojo ? '<w:color w:val="E8505B"/>' : ""}<w:sz w:val="${tam}"/></w:rPr><w:t xml:space="preserve">${xmlEsc(texto)}</w:t></w:r>`;
+}
+function wPar(runs, { despues = 0, antes = 0, linea = false } = {}) {
+  const borde = linea ? '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="6" w:color="808080"/></w:pBdr>' : "";
+  return `<w:p><w:pPr>${borde}<w:spacing w:before="${antes}" w:after="${despues}"/></w:pPr>${runs}</w:p>`;
+}
+
+function progDiaTransito(iso) {
+  const d = progParse(iso);
+  const nombre = PROG_DIAS[d.getDay()].toLowerCase().replace(/^./, (c) => c.toUpperCase());
+  return `${nombre} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function progDiasConBomba() {
+  const desde = state.prog.desde, hasta = state.prog.hasta;
+  const dias = progAgruparPorDia(progFilas("TODAS", desde, hasta));
+  const res = [];
+  dias.forEach((dia) => {
+    const conBomba = dia.filas.filter((r) => !r.sinLlenados && progEsBomba(r.bombeado));
+    if (conBomba.length === 0) return;
+    const horas = conBomba.map((r) => r.hora).filter(Boolean).sort();
+    res.push({ fecha: dia.fecha, hora: horas[0] || "" });
+  });
+  return res;
+}
+
+function abrirModalTransito() {
+  if (!esAdmin()) return;
+  const desde = state.prog.desde, hasta = state.prog.hasta;
+  if (!desde || !hasta) return toast("Elegí las fechas Desde y Hasta", "error");
+  if (desde > hasta) return toast("La fecha Desde es posterior a la fecha Hasta", "error");
+  const dias = progDiasConBomba();
+  if (dias.length === 0) return toast("No hay días con bomba en ese rango de fechas", "error");
+  let calleAnterior = TRANSITO_CALLES[0];
+  try { calleAnterior = localStorage.getItem("transitoCalle") || calleAnterior; } catch (e) { /* sin storage */ }
+  const cont = $("#transitoDias");
+  cont.innerHTML = "";
+  const lista = el("datalist", { id: "transitoCallesLista" }, TRANSITO_CALLES.map((c) => el("option", { value: c })));
+  cont.appendChild(lista);
+  dias.forEach((d, i) => {
+    cont.appendChild(el("div", { class: "row", style: "align-items:flex-end;gap:10px;margin-bottom:8px;flex-wrap:wrap", "data-fecha": d.fecha }, [
+      el("label", { style: "display:flex;align-items:center;gap:6px;width:150px;font-weight:600" }, [
+        el("input", { type: "checkbox", checked: "checked", class: "tr-incluir" }),
+        progDiaTransito(d.fecha),
+      ]),
+      el("div", { class: "field", style: "flex:1;min-width:140px;margin:0" }, [
+        el("label", {}, "Calle"),
+        el("input", { type: "text", list: "transitoCallesLista", class: "tr-calle", value: calleAnterior }),
+      ]),
+      el("div", { class: "field", style: "width:110px;margin:0" }, [
+        el("label", {}, "Desde las"),
+        el("input", { type: "time", class: "tr-hora", value: d.hora }),
+      ]),
+    ]));
+  });
+  openModal("#modalTransito");
+}
+
+function generarWordTransito() {
+  const obra = byId(state.obras, state.obraId);
+  const filas = $all("#transitoDias [data-fecha]").filter((f) => f.querySelector(".tr-incluir").checked);
+  if (filas.length === 0) return toast("Tildá al menos un día", "error");
+  const dias = filas.map((f) => ({
+    fecha: f.dataset.fecha,
+    calle: f.querySelector(".tr-calle").value.trim(),
+    hora: f.querySelector(".tr-hora").value,
+  }));
+  if (dias.some((d) => !d.calle)) return toast("Falta indicar la calle en algún día", "error");
+  try { localStorage.setItem("transitoCalle", dias[dias.length - 1].calle); } catch (e) { /* sin storage */ }
+
+  const cuerpo = [];
+  cuerpo.push(wPar(wRun(`Programación de media calzada - Obra ${obra?.nombre || ""}`, { negrita: true, tam: 28 }), { despues: 240 }));
+  dias.forEach((d, i) => {
+    cuerpo.push(wPar(wRun(progDiaTransito(d.fecha), { negrita: true, rojo: true, tam: 26 }), { antes: i === 0 ? 0 : 120 }));
+    cuerpo.push(wPar(wRun(`Media calzada por ${d.calle}`)));
+    cuerpo.push(wPar(
+      wRun("A partir de las ") + wRun(d.hora ? `${d.hora}hs` : "(hora a confirmar)", { rojo: true }),
+      { linea: i < dias.length - 1, despues: i < dias.length - 1 ? 120 : 0 }
+    ));
+  });
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const documento = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${cuerpo.join("")}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1701" w:bottom="1417" w:left="1701" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const blob = zipSinComprimir([
+    { nombre: "[Content_Types].xml", contenido: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>' },
+    { nombre: "_rels/.rels", contenido: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>' },
+    { nombre: "word/document.xml", contenido: documento },
+  ]);
+  const nombreObra = (obra?.nombre || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w .-]/g, "").trim();
+  const a = el("a", { href: URL.createObjectURL(blob), download: `${fmtFechaArchivo(dias[0].fecha)} media calzada ${nombreObra}`.trim() + ".docx" });
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  closeModal($("#modalTransito"));
+  toast("Word generado");
+}
+
 // ---------- Eventos ----------
 function bindProgramacionHandlers() {
   const f = progForm();
@@ -559,6 +703,8 @@ function bindProgramacionHandlers() {
   $("#progHasta").addEventListener("change", onRango);
   $("#btnProg14").addEventListener("click", () => progSetRango(progHoy(), progSumarDias(progHoy(), 13)));
   $("#btnProgExportarPDF").addEventListener("click", exportarProgramacionPDF);
+  $("#btnProgWordTransito").addEventListener("click", abrirModalTransito);
+  $("#btnTransitoGenerar").addEventListener("click", generarWordTransito);
 
   progResetForm(false);
   renderProgramacion();

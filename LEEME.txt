@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.2.2
+Versión 2.3.0
 
 QUÉ ES
 ------
@@ -36,6 +36,15 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.3.0
+-------------------------------------------------------
+- Programación: nuevo botón "Word para Tránsito (días con bomba)",
+  solo para Administrador. Toma los días con bomba (Bomba Lanza /
+  Bomba de arrastre) del rango Desde-Hasta, te deja elegir la calle
+  (Chiverta, Bvar Artigas u otra) y la hora de cada día, y descarga un
+  .docx con el formato "Media calzada por X / A partir de las HH:MMhs".
+  La hora que propone es la primera llegada de bomba del día.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.2.2
 -------------------------------

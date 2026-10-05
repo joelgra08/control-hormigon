@@ -345,7 +345,8 @@
         <div class="field" id="progDesdeField"><label>Desde</label><input type="date" id="progDesde" /></div>
         <div class="field" id="progHastaField"><label>Hasta</label><input type="date" id="progHasta" /></div>
         <button type="button" id="btnProg14" class="ghost">Próximos 14 días</button>
-        <button type="button" id="btnProgExportarPDF" class="primary" style="margin-left:auto">🖨 Exportar PDF (Torre + Basamento)</button>
+        <button type="button" id="btnProgWordTransito" class="solo-admin" style="margin-left:auto" title="Word con los días que hay bomba, para mandarle a Tránsito">📄 Word para Tránsito (días con bomba)</button>
+        <button type="button" id="btnProgExportarPDF" class="primary">🖨 Exportar PDF (Torre + Basamento)</button>
       </div>
       <div class="hint" id="progResumen" style="margin-bottom:10px;font-weight:600"></div>
       <p class="hint" id="progAyudaArrastre" style="display:none;margin-bottom:10px">Para reprogramar un llenado, arrastrá su fila y soltala sobre el día al que pasa (con el mouse, desde la PC).</p>
@@ -671,6 +672,18 @@
 </main>
 
 <!-- Modal Obra -->
+<div class="modal-backdrop" id="modalTransito">
+  <div class="modal">
+    <h3>Word para Tránsito — media calzada</h3>
+    <p class="hint">Días con bomba entre las fechas elegidas en Programación. Elegí por qué calle va la media calzada y revisá la hora (se toma la primera llegada de bomba del día). Destildá los días que no quieras incluir.</p>
+    <div id="transitoDias"></div>
+    <div class="row end" style="margin-top:14px">
+      <button type="button" data-close-modal>Cancelar</button>
+      <button type="button" class="primary" id="btnTransitoGenerar">Descargar Word</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modalObra">
   <div class="modal">
     <h3 id="modalObraTitulo">Nueva obra</h3>
