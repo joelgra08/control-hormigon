@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.3.2";
+const APP_VERSION = "2.3.3";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada

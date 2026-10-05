@@ -559,53 +559,139 @@ function progDescLlenado(r) {
     r.m3 !== null && r.m3 !== undefined ? `${fmtM3(r.m3)} m3` : "", r.bombeado, r.tipoHormigon].filter(Boolean).join(" - ");
 }
 
-// Recuadro de un día (como la tarjeta del PDF) en HTML con tablas y estilos
-// en línea, que es lo que Outlook interpreta bien. La fila que cambió va
-// resaltada; una fila borrada aparece tachada.
-function progHtmlDia(fecha, idResaltar, borrada) {
+// Recuadro de un día (como la tarjeta del PDF) dibujado como imagen PNG:
+// se ve igual en cualquier Outlook y con letra grande. La fila que cambió va
+// resaltada; una fila borrada aparece tachada. Devuelve el PNG en base64.
+function progImagenDia(fecha, idResaltar, borrada) {
   const filas = state.programacion.filter((r) => r.fecha === fecha).sort(progOrdenar);
   const conLlenados = filas.filter((r) => !r.sinLlenados);
   const visibles = conLlenados.length ? conLlenados : filas.slice(0, 1);
   const total = conLlenados.reduce((a, r) => a + (r.m3 || 0), 0);
   const nombre = PROG_DIAS[progParse(fecha).getDay()];
-  const td = (txt, extra = "") => `<td style="border:1px solid #becdc4;padding:4px 7px;font-size:12px;${extra}">${xmlEsc(txt)}</td>`;
-  const fila = (r, estilo = "", tachado = false) => {
-    const t = tachado ? "text-decoration:line-through;color:#8a2b2b;" : "";
-    if (r.sinLlenados) return `<tr style="${estilo}"><td colspan="7" align="center" style="border:1px solid #becdc4;padding:5px;font-size:12px;font-weight:bold;color:#b3413a;background:#fdecea">${xmlEsc(r.notas || PROG_MOTIVO_DEFAULT)}</td></tr>`;
-    const bomba = progEsBomba(r.bombeado) ? "background:#fff200;font-weight:bold;" : "";
-    return `<tr style="${estilo}">${td(progHoraHHMM(r.hora) || "-", t + "text-align:right;")}${td(r.bombeado || "-", t + bomba)}${td(r.tipoHormigon || "-", t)}${td(r.elemento || "-", t)}${td(r.m3 === null || r.m3 === undefined ? "" : fmtM3(r.m3), t + "text-align:right;")}${td(r.notas || "", t)}${td(PROG_ZONAS[r.zona] || r.zona || "", t)}</tr>`;
+
+  const W = 1100, ESC = 2, PAD = 10, LH = 22;
+  const FUENTE = "Calibri, 'Segoe UI', Arial, sans-serif";
+  const cols = [
+    { t: "Hora llegada", w: 120, der: true }, { t: "Bombeado", w: 180 }, { t: "Tipo hormigón", w: 210 },
+    { t: "Elemento", w: 240 }, { t: "m³", w: 90, der: true }, { t: "Notas", w: 150 }, { t: "Zona", w: 110 },
+  ];
+  const medir = document.createElement("canvas").getContext("2d");
+  medir.font = `18px ${FUENTE}`;
+  const partir = (txt, ancho) => {
+    const lineas = []; let actual = "";
+    String(txt || "").split(/\s+/).filter(Boolean).forEach((pal) => {
+      const prueba = actual ? `${actual} ${pal}` : pal;
+      if (medir.measureText(prueba).width <= ancho || !actual) actual = prueba;
+      else { lineas.push(actual); actual = pal; }
+    });
+    if (actual) lineas.push(actual);
+    return lineas.length ? lineas : [""];
   };
-  let cuerpo = visibles.map((r) => fila(r, r.id === idResaltar ? "background:#fff4cc;" : "")).join("");
-  if (borrada && borrada.fecha === fecha) cuerpo += fila(borrada, "background:#fdecea;", true);
-  if (!cuerpo) cuerpo = `<tr><td colspan="7" align="center" style="border:1px solid #becdc4;padding:6px;font-size:12px;color:#6e7d74">Sin llenados programados</td></tr>`;
-  const th = (t, extra = "") => `<th style="border:1px solid #becdc4;padding:4px 7px;font-size:12px;background:#d6ebdd;color:#142d20;${extra}">${t}</th>`;
-  return `<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;max-width:720px;margin:0 0 14px 0;font-family:Calibri,Arial,sans-serif">
-<tr><td colspan="7" style="background:#2f6b49;color:#ffffff;font-weight:bold;font-size:14px;padding:6px 9px">${nombre} ${progFechaCorta(fecha)}<span style="float:right">Total ${fmtM3(total)} m³</span></td></tr>
-<tr>${th("Hora llegada")}${th("Bombeado")}${th("Tipo hormigón")}${th("Elemento")}${th("m³")}${th("Notas")}${th("Zona")}</tr>
-${cuerpo}
-<tr><td colspan="4" align="right" style="border:1px solid #becdc4;padding:4px 7px;font-size:12px;font-weight:bold;background:#d6ebdd">Total</td><td align="right" style="border:1px solid #becdc4;padding:4px 7px;font-size:12px;font-weight:bold;background:#d6ebdd">${fmtM3(total)}</td><td colspan="2" style="border:1px solid #becdc4;background:#d6ebdd"></td></tr>
-</table>`;
+
+  const datos = visibles.map((r) => ({ r, bg: r.id === idResaltar ? "#fff4cc" : "#ffffff", tachado: false }));
+  if (borrada && borrada.fecha === fecha) datos.push({ r: borrada, bg: "#fdecea", tachado: true });
+  const celdas = datos.map((d) => {
+    const r = d.r;
+    if (r.sinLlenados) return { ...d, sin: true, lineas: partir(r.notas || PROG_MOTIVO_DEFAULT, W - 2 * PAD) };
+    return { ...d, cel: [
+      [progHoraHHMM(r.hora) || "-"], [r.bombeado || "-"], [r.tipoHormigon || "-"], [r.elemento || "-"],
+      [r.m3 === null || r.m3 === undefined ? "" : fmtM3(r.m3)], [r.notas || ""], [PROG_ZONAS[r.zona] || r.zona || ""],
+    ].map((c, i) => (i === 3 || i === 5 || i === 2 ? partir(c[0], cols[i].w - 2 * PAD) : c)) };
+  });
+  const altoFila = (c) => (c.sin ? c.lineas.length : Math.max(...c.cel.map((x) => x.length))) * LH + 16;
+  const ALTO_TIT = 50, ALTO_CAB = 40, ALTO_TOT = 40;
+  const vacio = celdas.length === 0;
+  const alto = ALTO_TIT + ALTO_CAB + (vacio ? 44 : celdas.reduce((a, c) => a + altoFila(c), 0)) + ALTO_TOT;
+
+  const cv = document.createElement("canvas");
+  cv.width = W * ESC; cv.height = alto * ESC;
+  const g = cv.getContext("2d");
+  g.scale(ESC, ESC);
+  g.fillStyle = "#ffffff"; g.fillRect(0, 0, W, alto);
+  g.textBaseline = "middle";
+  const borde = (x, y, w, h, fondo) => {
+    if (fondo) { g.fillStyle = fondo; g.fillRect(x, y, w, h); }
+    g.strokeStyle = "#becdc4"; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  };
+
+  g.fillStyle = "#2f6b49"; g.fillRect(0, 0, W, ALTO_TIT);
+  g.fillStyle = "#ffffff"; g.font = `bold 24px ${FUENTE}`;
+  g.textAlign = "left"; g.fillText(`${nombre}  ${progFechaCorta(fecha)}`, 14, ALTO_TIT / 2);
+  g.textAlign = "right"; g.fillText(`Total ${fmtM3(total)} m³`, W - 14, ALTO_TIT / 2);
+
+  let y = ALTO_TIT, x = 0;
+  g.font = `bold 18px ${FUENTE}`;
+  cols.forEach((c) => {
+    borde(x, y, c.w, ALTO_CAB, "#d6ebdd");
+    g.fillStyle = "#142d20"; g.textAlign = "center"; g.fillText(c.t, x + c.w / 2, y + ALTO_CAB / 2);
+    x += c.w;
+  });
+  y += ALTO_CAB;
+
+  if (vacio) {
+    borde(0, y, W, 44, "#ffffff");
+    g.font = `18px ${FUENTE}`; g.fillStyle = "#6e7d74"; g.textAlign = "center";
+    g.fillText("Sin llenados programados", W / 2, y + 22); y += 44;
+  }
+  celdas.forEach((c) => {
+    const h = altoFila(c);
+    if (c.sin) {
+      borde(0, y, W, h, "#fdecea");
+      g.font = `bold 18px ${FUENTE}`; g.fillStyle = "#b3413a"; g.textAlign = "center";
+      c.lineas.forEach((l, i) => g.fillText(l, W / 2, y + 8 + LH / 2 + i * LH));
+    } else {
+      x = 0;
+      c.cel.forEach((lineas, i) => {
+        const col = cols[i];
+        const bomba = i === 1 && progEsBomba(c.r.bombeado) && !c.tachado;
+        borde(x, y, col.w, h, bomba ? "#fff200" : c.bg);
+        g.font = `${bomba ? "bold " : ""}18px ${FUENTE}`;
+        g.fillStyle = c.tachado ? "#8a2b2b" : "#1c2620";
+        g.textAlign = col.der ? "right" : "left";
+        const tx = col.der ? x + col.w - PAD : x + PAD;
+        lineas.forEach((l, k) => {
+          const ty = y + 8 + LH / 2 + k * LH;
+          g.fillText(l, tx, ty);
+          if (c.tachado && l) {
+            const ancho = g.measureText(l).width;
+            g.strokeStyle = "#8a2b2b";
+            g.beginPath(); g.moveTo(col.der ? tx - ancho : tx, ty); g.lineTo(col.der ? tx : tx + ancho, ty); g.stroke();
+          }
+        });
+        x += col.w;
+      });
+    }
+    y += h;
+  });
+
+  const wTot = cols.slice(0, 4).reduce((a, c) => a + c.w, 0);
+  borde(0, y, wTot, ALTO_TOT, "#d6ebdd");
+  borde(wTot, y, cols[4].w, ALTO_TOT, "#d6ebdd");
+  borde(wTot + cols[4].w, y, W - wTot - cols[4].w, ALTO_TOT, "#d6ebdd");
+  g.font = `bold 18px ${FUENTE}`; g.fillStyle = "#142d20";
+  g.textAlign = "right"; g.fillText("Total", wTot - PAD, y + ALTO_TOT / 2);
+  g.fillText(fmtM3(total), wTot + cols[4].w - PAD, y + ALTO_TOT / 2);
+  return cv.toDataURL("image/png").split(",")[1];
 }
 
-function progHtmlAviso(tipo, fila, anterior, obraNombre) {
+const PROG_FIRMA_LINEAS = ["Sistema de Control de Hormigón", "Mail enviado automáticamente"];
+
+function progHtmlAviso(tipo, fila, anterior, obraNombre, nImagenes) {
   const rotulo = { agregado: "Se AGREGÓ un llenado", eliminado: "Se ELIMINÓ un llenado", modificado: "Se MODIFICÓ un llenado", reprogramado: "Se REPROGRAMÓ un llenado" }[tipo];
   const detalle = [];
   if (tipo === "modificado" || tipo === "reprogramado") {
     if (anterior) detalle.push(`<b>Antes:</b> ${xmlEsc(progDescLlenado(anterior))}`);
     detalle.push(`<b>Ahora:</b> ${xmlEsc(progDescLlenado(fila))}`);
   } else detalle.push(xmlEsc(progDescLlenado(fila)));
-  const fechas = [fila.fecha];
-  if (anterior && anterior.fecha !== fila.fecha) fechas.unshift(anterior.fecha);
-  const dias = fechas.map((f) => progHtmlDia(f, tipo === "eliminado" ? null : fila.id, tipo === "eliminado" ? fila : null)).join("");
-  const quien = state.miPerfil?.nombre ? `<br>${xmlEsc(state.miPerfil.nombre)}` : "";
-  return `<html><body style="font-family:Calibri,Arial,sans-serif;font-size:14px;color:#1c2620">
+  const imgs = Array.from({ length: nImagenes }, (_, i) => `<p style="margin:0 0 14px 0"><img src="cid:dia${i}@controlhormigon" width="800" alt="Programación del día" style="width:800px;max-width:100%"></p>`).join("");
+  return `<html><body style="font-family:Calibri,Arial,sans-serif;font-size:15px;color:#1c2620">
 <p>Estimados:</p>
 <p>Les informamos que hubo una modificación en la programación de hormigón de la obra <b>${xmlEsc(obraNombre)}</b>.</p>
 <p style="margin:0 0 4px 0"><b>${rotulo}:</b></p>
 <p style="margin:0 0 14px 14px">${detalle.join("<br>")}</p>
-<p style="margin:0 0 6px 0">Así queda la programación ${fechas.length > 1 ? "de los días afectados" : "del día"}:</p>
-${dias}
-<p>Saludos.${quien}</p>
+<p style="margin:0 0 6px 0">Así queda la programación ${nImagenes > 1 ? "de los días afectados" : "del día"}:</p>
+${imgs}
+<p>Saludos.<br><br><span style="color:#5d6b63">${PROG_FIRMA_LINEAS.join("<br>")}</span></p>
 </body></html>`;
 }
 
@@ -613,23 +699,33 @@ function progBase64Utf8(txt) {
   const bytes = new TextEncoder().encode(txt);
   let bin = "";
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return btoa(bin).replace(/(.{76})/g, "$1\r\n");
+  return btoa(bin);
 }
+const progPartir76 = (b64) => b64.replace(/(.{76})/g, "$1\r\n");
 
-// Borrador .eml con formato (X-Unsent: 1 hace que Outlook lo abra como
-// mensaje nuevo, editable, listo para enviar).
-function progDescargarEml(asunto, html) {
-  const eml = [
+// Borrador .eml con formato e imágenes embebidas (X-Unsent: 1 hace que
+// Outlook lo abra como mensaje nuevo, editable, listo para enviar).
+function progDescargarEml(asunto, htmlFn, imagenesB64) {
+  const LIM = "----=_ControlHormigon_" + Date.now();
+  const partes = [
     `To: ${PROG_MAIL_PARA.join(", ")}`,
-    `Subject: =?UTF-8?B?${progBase64Utf8(asunto).replace(/\r\n/g, "")}?=`,
+    `Subject: =?UTF-8?B?${progBase64Utf8(asunto)}?=`,
     "X-Unsent: 1",
     "MIME-Version: 1.0",
+    `Content-Type: multipart/related; type="text/html"; boundary="${LIM}"`,
+    "",
+    `--${LIM}`,
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: base64",
     "",
-    progBase64Utf8(html),
-  ].join("\r\n");
-  const url = URL.createObjectURL(new Blob([eml], { type: "message/rfc822" }));
+    progPartir76(progBase64Utf8(htmlFn(imagenesB64.length))),
+  ];
+  imagenesB64.forEach((b64, i) => {
+    partes.push(`--${LIM}`, `Content-Type: image/png; name="dia${i + 1}.png"`, "Content-Transfer-Encoding: base64",
+      `Content-ID: <dia${i}@controlhormigon>`, `Content-Disposition: inline; filename="dia${i + 1}.png"`, "", progPartir76(b64));
+  });
+  partes.push(`--${LIM}--`, "");
+  const url = URL.createObjectURL(new Blob([partes.join("\r\n")], { type: "message/rfc822" }));
   const a = el("a", { href: url, download: "Aviso modificacion programacion.eml" });
   document.body.appendChild(a);
   a.click();
@@ -643,7 +739,10 @@ function progAvisarCambio(tipo, fila, anterior) {
   const asunto = `Obra ${obraNombre} - Modificación en la programación de hormigón`;
   const modo = $("#progAvisoModo")?.value || "eml";
   if (modo === "eml") {
-    setTimeout(() => progDescargarEml(asunto, progHtmlAviso(tipo, fila, anterior, obraNombre)), 250);
+    const fechas = [fila.fecha];
+    if (anterior && anterior.fecha !== fila.fecha) fechas.unshift(anterior.fecha);
+    const imagenes = fechas.map((f) => progImagenDia(f, tipo === "eliminado" ? null : fila.id, tipo === "eliminado" ? fila : null));
+    setTimeout(() => progDescargarEml(asunto, (n) => progHtmlAviso(tipo, fila, anterior, obraNombre, n), imagenes), 250);
     return;
   }
   const lineas = [];
@@ -654,8 +753,7 @@ function progAvisarCambio(tipo, fila, anterior) {
     if (anterior) lineas.push(`  Antes: ${progDescLlenado(anterior)}`);
     lineas.push(`  Ahora: ${progDescLlenado(fila)}`);
   }
-  const quien = state.miPerfil?.nombre ? `\n${state.miPerfil.nombre}` : "";
-  const cuerpo = `Estimados:\n\nHubo una modificación en la programación de hormigón de la obra ${obraNombre}:\n\n${lineas.join("\n")}\n\nSaludos.${quien}`;
+  const cuerpo = `Estimados:\n\nHubo una modificación en la programación de hormigón de la obra ${obraNombre}:\n\n${lineas.join("\n")}\n\nSaludos.\n\n${PROG_FIRMA_LINEAS.join("\n")}`;
   const href = `mailto:${PROG_MAIL_PARA.join(",")}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo.replace(/\n/g, "\r\n"))}`;
   setTimeout(() => {
     const a = el("a", { href });
