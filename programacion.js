@@ -544,6 +544,7 @@ function exportarProgramacionPDF() {
 // ---------- Aviso por mail a la hormigonera cuando se modifica la programación ----------
 // Abre un borrador en el programa de correo del usuario (mailto:, por
 // ejemplo Outlook). No se envía nada solo: el administrador decide si lo manda.
+const PROG_MAIL_CC = ["jamonte@zulamian.com", "mcoitino@zulamian.com"];
 const PROG_MAIL_PARA = ["hormigonmaldonado@cieloazul.com", "dramirez@cieloazul.com", "hceretta@cieloazul.com"];
 
 function progAvisoActivo() {
@@ -709,6 +710,7 @@ function progDescargarEml(asunto, htmlFn, imagenesB64) {
   const LIM = "----=_ControlHormigon_" + Date.now();
   const partes = [
     `To: ${PROG_MAIL_PARA.join(", ")}`,
+    `Cc: ${PROG_MAIL_CC.join(", ")}`,
     `Subject: =?UTF-8?B?${progBase64Utf8(asunto)}?=`,
     "X-Unsent: 1",
     "MIME-Version: 1.0",
@@ -754,7 +756,7 @@ function progAvisarCambio(tipo, fila, anterior) {
     lineas.push(`  Ahora: ${progDescLlenado(fila)}`);
   }
   const cuerpo = `Estimados:\n\nHubo una modificación en la programación de hormigón de la obra ${obraNombre}:\n\n${lineas.join("\n")}\n\nSaludos.\n\n${PROG_FIRMA_LINEAS.join("\n")}`;
-  const href = `mailto:${PROG_MAIL_PARA.join(",")}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo.replace(/\n/g, "\r\n"))}`;
+  const href = `mailto:${PROG_MAIL_PARA.join(",")}?cc=${PROG_MAIL_CC.join(",")}&subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo.replace(/\n/g, "\r\n"))}`;
   setTimeout(() => {
     const a = el("a", { href });
     document.body.appendChild(a);
