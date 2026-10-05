@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.2.1
+Versión 2.2.2
 
 QUÉ ES
 ------
@@ -36,6 +36,18 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.2.2
+-------------------------------
+- Mejor vista en el celular (la compu queda igual):
+  * La barra de arriba ya no se sale de la pantalla: obra, "Guardado",
+    usuario y "Salir" se acomodan en filas.
+  * Las pestañas quedan fijas arriba mientras bajás y se deslizan con el dedo.
+  * Los formularios se acomodan en 2 columnas (1 en pantallas muy chicas) y los
+    campos son más cómodos de tocar; el iPhone ya no hace zoom solo al escribir.
+  * Las listas largas (Remitos, Tarjeta diaria, Probetas, Pedidos de hierro y
+    Programación) se ven como tarjetas, una por fila, en vez de una tabla que
+    hay que correr de costado. Los datos vacíos no se muestran.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.2.1
 -------------------------------

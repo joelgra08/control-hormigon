@@ -500,3 +500,113 @@ tr.prog-arrastrando { opacity: 0.4; }
 .prog-dia-vacio .prog-dia-head { background: #eef2ef; color: var(--muted); font-weight: 600; }
 .prog-soltar { display: none; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px; }
 .prog-en-arrastre .prog-soltar { display: block; }
+
+/* =========================================================
+   CELULAR (pantallas angostas)
+   Todo está dentro de media queries: la versión de escritorio no cambia.
+   - La barra de arriba pasa a varias filas en vez de salirse de la pantalla.
+   - Las pestañas quedan fijas arriba y se deslizan con el dedo.
+   - Los formularios usan 2 columnas que se achican (1 en pantallas muy chicas).
+   - Las tablas largas (remitos, tarjeta, probetas, hierro, programación) se
+     muestran como tarjetas: cada fila es una tarjeta con "campo: valor".
+     (Los títulos de cada dato los pone app.js → etiquetarTablasParaCelular.)
+   ========================================================= */
+@media (max-width: 720px) {
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 15px; }
+
+  header.topbar { padding: 8px 12px; gap: 8px; }
+  header.topbar h1 { font-size: 14.5px; white-space: normal; line-height: 1.2; flex: 1 1 0; min-width: 0; }
+  .obra-selector { margin-left: 0; width: 100%; flex-wrap: wrap; gap: 6px; }
+  .obra-selector > label { display: none; }
+  .obra-selector select { min-width: 0; flex: 1 1 calc(100% - 170px); }
+  /* Sin los botones de editar/nueva obra (todos menos administrador) el selector ocupa toda la fila */
+  body:not([data-rol="administrador"]) .obra-selector select { flex-basis: 100%; }
+  .save-status { padding: 5px 8px; font-size: 11px; }
+  .mi-usuario { flex: 1 1 80px; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; }
+  button.ghost-dark { padding: 6px 10px; }
+
+  nav.tabs {
+    position: sticky; top: 0; z-index: 60;
+    padding: 0 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  nav.tabs button { padding: 12px 14px; }
+  nav.tabs button.tab-referencias { margin-left: 0; }
+
+  main { padding: 10px; }
+  .panel { padding: 14px 12px; margin-bottom: 12px; }
+
+  /* Formularios */
+  .form-grid, .form-grid.wide { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 10px; max-width: none !important; }
+  .field { min-width: 0; }
+  .field.span2 { grid-column: 1 / -1; }
+  /* 16px evita que el iPhone haga zoom solo al tocar un campo */
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    font-size: 16px; min-height: 42px; width: 100%; min-width: 0;
+  }
+  button { min-height: 40px; }
+  nav.tabs button { min-height: 44px; }
+  .tag-item button, td button { min-height: 32px; }
+  .actions { flex-wrap: wrap; }
+  .actions button { flex: 1 1 auto; }
+  .row > .field { flex: 1 1 140px; min-width: 0; }
+  .row.between { gap: 8px; }
+
+  /* Indicadores de a dos */
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .kpi { padding: 10px 12px; }
+  .kpi .value { font-size: 19px; }
+
+  .seg { display: flex; width: 100%; }
+  .seg button { flex: 1 1 0; padding: 9px 6px; }
+
+  .modal { width: 94%; max-height: 88vh; overflow-y: auto; padding: 16px; }
+  .toast { left: 12px; right: 12px; bottom: 12px; text-align: center; }
+  .footer-note { margin-top: 18px; }
+
+  .table-scroll { max-height: 70vh; }
+
+  /* Tablas como tarjetas: cada fila es una tarjeta con los datos de a dos columnas
+     (título chico arriba, valor abajo) para que no ocupe media pantalla por fila. */
+  .table-scroll.cards-movil { border: none; overflow: visible; max-height: none; border-radius: 0; }
+  .cards-movil table, .cards-movil tbody,
+  .prog-dia table, .prog-dia tbody { display: block; width: 100%; }
+  .cards-movil thead, .prog-dia thead { display: none; }
+  .cards-movil tbody tr, .prog-dia tbody tr {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px;
+    background: #fff; padding: 10px 12px;
+  }
+  .cards-movil tbody tr { border: 1px solid var(--border); border-radius: var(--radius); margin: 0 0 10px; }
+  .prog-dia tbody tr { border: none; border-bottom: 1px solid var(--border); }
+  .prog-dia tbody tr:last-child { border-bottom: none; }
+  .cards-movil tbody td, .prog-dia tbody td {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+    padding: 0; border: none; white-space: normal; text-align: left !important; min-width: 0;
+    overflow-wrap: anywhere; font-size: 14.5px;
+  }
+  .cards-movil tbody td::before, .prog-dia tbody td::before {
+    content: attr(data-label); font-weight: 600; font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .cards-movil tbody td:not([data-label])::before, .cards-movil tbody td[data-label=""]::before,
+  .prog-dia tbody td:not([data-label])::before, .prog-dia tbody td[data-label=""]::before { display: none; }
+  /* La fila de botones (editar/borrar) ocupa todo el ancho de la tarjeta */
+  .cards-movil tbody td[data-label=""], .prog-dia tbody td.prog-acciones {
+    grid-column: 1 / -1; flex-direction: row; justify-content: flex-end; gap: 6px;
+  }
+  .cards-movil tbody td.celda-vacia, .prog-dia tbody td.celda-vacia { display: none; }
+  .cards-movil tbody tr:hover { background: #fff; }
+  .prog-dia-head { flex-wrap: wrap; gap: 2px 12px; font-size: 14px; }
+  .prog-dia-head > * { white-space: nowrap; }
+  .prog-dia { overflow-x: visible; }
+  .prog-dia table { min-width: 0; table-layout: auto; }
+  .prog-sin td { grid-column: 1 / -1; text-align: center !important; align-items: center; }
+  td.prog-acciones { background: transparent; width: auto; }
+}
+
+@media (max-width: 360px) {
+  .form-grid, .form-grid.wide { grid-template-columns: minmax(0, 1fr); }
+}

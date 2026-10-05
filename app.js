@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.2.1";
+const APP_VERSION = "2.2.2";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2935,5 +2935,42 @@ async function restaurarBackupJSON(file) {
   }
 }
 
+// ---------- Tablas en el celular ----------
+// En pantallas angostas las tablas largas se muestran como tarjetas (ver styles.css,
+// bloque "CELULAR"). Para eso cada celda necesita saber el título de su columna:
+// se lo copiamos del encabezado en un atributo data-label. Es solo visual.
+function etiquetarTablasParaCelular() {
+  document.querySelectorAll("table").forEach((t) => {
+    const titulos = Array.from(t.querySelectorAll("thead th")).map((th) => th.textContent.trim());
+    if (titulos.length === 0) return;
+    t.querySelectorAll("tbody tr").forEach((tr) => {
+      let col = 0;
+      Array.from(tr.children).forEach((td) => {
+        if (td.tagName !== "TD") return;
+        const ancho = parseInt(td.getAttribute("colspan") || "1", 10);
+        if (ancho === 1 && !td.hasAttribute("data-label")) td.setAttribute("data-label", titulos[col] || "");
+        // Las celdas sin dato ("-" o vacías) se esconden en las tarjetas del celular
+        const txt = td.textContent.trim();
+        td.classList.toggle("celda-vacia", ancho === 1 && !td.querySelector("button") && (txt === "" || txt === "-"));
+        col += ancho;
+      });
+    });
+  });
+}
+
+function iniciarEtiquetadoDeTablas() {
+  const main = document.querySelector("main");
+  if (!main || typeof MutationObserver === "undefined") return;
+  let timer = null;
+  new MutationObserver(() => {
+    clearTimeout(timer);
+    timer = setTimeout(etiquetarTablasParaCelular, 60);
+  }).observe(main, { childList: true, subtree: true });
+  etiquetarTablasParaCelular();
+}
+
 // ---------- Arranque ----------
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => {
+  iniciarEtiquetadoDeTablas();
+  init();
+});
