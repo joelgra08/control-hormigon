@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.3.4
+Versión 2.3.5
 
 QUÉ ES
 ------
@@ -36,6 +36,13 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.3.5
+-------------------------------------------------------
+- La casilla "Avisar a Cielo Azul con este cambio" ahora está dentro del
+  formulario de Programación, junto al botón Agregar, y se resalta en
+  amarillo cuando está tildada. Si no está tildada no se descarga el
+  .eml. Recuerda tu última elección.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.3.4
 -------------------------------------------------------

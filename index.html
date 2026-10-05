@@ -335,6 +335,7 @@
         <div class="actions">
           <button type="submit" id="btnProgGuardar" class="primary">+ Agregar</button>
           <button type="button" id="btnProgCancelar" style="display:none">Cancelar</button>
+          <label class="aviso-mail solo-admin" id="progAvisarLabel" title="Si está tildada, cada vez que agregues, modifiques, borres o reprogrames un llenado se descarga un borrador de correo (.eml) para Cielo Azul. No se envía solo."><input type="checkbox" id="progAvisarMail" checked /> ✉ Avisar a Cielo Azul con este cambio</label>
         </div>
         <p class="hint">Al agregar, la fecha, la hora, el bombeado y el tipo de hormigón quedan cargados para el llenado siguiente: solo cambiás elemento y m³ y apretás Enter.</p>
       </form>
@@ -345,7 +346,6 @@
         <div class="field" id="progDesdeField"><label>Desde</label><input type="date" id="progDesde" /></div>
         <div class="field" id="progHastaField"><label>Hasta</label><input type="date" id="progHasta" /></div>
         <button type="button" id="btnProg14" class="ghost">Próximos 14 días</button>
-        <label class="solo-admin" style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0" title="Cada vez que agregues, modifiques, borres o reprogrames un llenado, se abre un borrador de correo para Cielo Azul. No se envía solo."><input type="checkbox" id="progAvisarMail" checked /> ✉ Avisar a Cielo Azul al modificar</label>
         <select id="progAvisoModo" class="solo-admin" style="width:auto" title="Cómo se arma el aviso"><option value="eml">Borrador con recuadro del día (.eml)</option><option value="mailto">Texto simple (abre el correo directo)</option></select>
         <button type="button" id="btnProgWordTransito" class="solo-admin" style="margin-left:auto" title="Word con los días que hay bomba, para mandarle a Tránsito">📄 Word para Tránsito (días con bomba)</button>
         <button type="button" id="btnProgExportarPDF" class="primary">🖨 Exportar PDF (Torre + Basamento)</button>

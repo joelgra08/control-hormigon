@@ -949,7 +949,9 @@ function bindProgramacionHandlers() {
   const chk = $("#progAvisarMail");
   if (chk) {
     try { chk.checked = localStorage.getItem("progAvisarMail") !== "no"; } catch (e) { /* sin storage */ }
-    chk.addEventListener("change", () => { try { localStorage.setItem("progAvisarMail", chk.checked ? "si" : "no"); } catch (e) { /* sin storage */ } });
+    const pintar = () => $("#progAvisarLabel")?.classList.toggle("on", chk.checked);
+    pintar();
+    chk.addEventListener("change", () => { pintar(); try { localStorage.setItem("progAvisarMail", chk.checked ? "si" : "no"); } catch (e) { /* sin storage */ } });
   }
   const modo = $("#progAvisoModo");
   if (modo) {

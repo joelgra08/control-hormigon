@@ -610,3 +610,9 @@ tr.prog-arrastrando { opacity: 0.4; }
 @media (max-width: 360px) {
   .form-grid, .form-grid.wide { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Casilla "Avisar a Cielo Azul" dentro del formulario de Programación */
+.aviso-mail { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 0 auto; padding: 6px 10px; border: 1px solid #becdc4; border-radius: 6px; font-size: 13px; cursor: pointer; background: #f4f7f5; }
+.aviso-mail.on { background: #fff4cc; border-color: #e0c34a; font-weight: 600; }
+.aviso-mail input { width: auto; margin: 0; }
+@media (max-width: 720px) { .aviso-mail { margin-left: 0; width: 100%; } }
