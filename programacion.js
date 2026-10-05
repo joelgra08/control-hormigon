@@ -229,6 +229,7 @@ async function progOnSubmit(e) {
     sinLlenados: sin,
   };
   const editando = !!state.prog.editingId;
+  const anterior = editando ? state.programacion.find((r) => r.id === fila.id) : null;
   try {
     await DB.put("programacion", fila);
   } catch (err) { return; } // el aviso de error ya lo mostró la capa de datos
@@ -237,6 +238,7 @@ async function progOnSubmit(e) {
   progResetForm(true);
   renderProgramacion();
   toast(editando ? "Llenado actualizado" : "Llenado agregado", "ok");
+  progAvisarCambio(editando ? "modificado" : "agregado", fila, anterior);
   if (!sin) progForm().prog_elemento.focus();
 }
 
@@ -248,6 +250,7 @@ async function progBorrar(fila) {
   if (state.prog.editingId === fila.id) progResetForm(true);
   renderProgramacion();
   toast("Llenado borrado", "ok");
+  progAvisarCambio("eliminado", fila, null);
 }
 
 function progPasarAlSiguiente(fila) { return progMoverA(fila, progSiguienteHabil(fila.fecha)); }
@@ -256,11 +259,13 @@ function progPasarAlSiguiente(fila) { return progMoverA(fila, progSiguienteHabil
 async function progMoverA(fila, fecha) {
   if (!progPuedeEditar() || !fecha || fecha === fila.fecha) return;
   const nueva = { ...fila, fecha };
+  const anterior = fila;
   try { await DB.put("programacion", nueva); } catch (err) { return; }
   const idx = state.programacion.findIndex((r) => r.id === fila.id);
   if (idx >= 0) state.programacion[idx] = nueva;
   renderProgramacion();
   toast(`Pasado al ${progDiaNombre(nueva.fecha).toLowerCase()} ${progFechaCorta(nueva.fecha)}`, "ok");
+  progAvisarCambio("reprogramado", nueva, anterior);
 }
 
 // ---------- Vista ----------
@@ -536,6 +541,47 @@ function exportarProgramacionPDF() {
   doc.save(`${fmtFechaArchivo(desde)} programacion hormigon ${nombreObra}`.trim() + ".pdf");
 }
 
+// ---------- Aviso por mail a la hormigonera cuando se modifica la programación ----------
+// Abre un borrador en el programa de correo del usuario (mailto:, por
+// ejemplo Outlook). No se envía nada solo: el administrador decide si lo manda.
+const PROG_MAIL_PARA = ["hormigonmaldonado@cieloazul.com", "dramirez@cieloazul.com", "hceretta@cieloazul.com"];
+
+function progAvisoActivo() {
+  const c = $("#progAvisarMail");
+  return !!(esAdmin() && c && c.checked);
+}
+
+function progDescLlenado(r) {
+  const cuando = progDiaTransito(r.fecha);
+  const zona = PROG_ZONAS[r.zona] || r.zona || "";
+  if (r.sinLlenados) return `${cuando} - ${zona} - ${r.notas || PROG_MOTIVO_DEFAULT}`;
+  return [cuando, r.hora ? `${String(r.hora).slice(0, 5)}hs` : "sin hora", zona, r.elemento,
+    r.m3 !== null && r.m3 !== undefined ? `${fmtM3(r.m3)} m3` : "", r.bombeado, r.tipoHormigon].filter(Boolean).join(" - ");
+}
+
+function progAvisarCambio(tipo, fila, anterior) {
+  if (!progAvisoActivo()) return;
+  const obra = byId(state.obras, state.obraId);
+  const lineas = [];
+  if (tipo === "agregado") lineas.push(`Se AGREGÓ un llenado:`, `  ${progDescLlenado(fila)}`);
+  else if (tipo === "eliminado") lineas.push(`Se ELIMINÓ un llenado:`, `  ${progDescLlenado(fila)}`);
+  else {
+    lineas.push(tipo === "reprogramado" ? `Se REPROGRAMÓ un llenado:` : `Se MODIFICÓ un llenado:`);
+    if (anterior) lineas.push(`  Antes: ${progDescLlenado(anterior)}`);
+    lineas.push(`  Ahora: ${progDescLlenado(fila)}`);
+  }
+  const quien = state.miPerfil?.nombre ? `\n${state.miPerfil.nombre}` : "";
+  const cuerpo = `Estimados:\n\nHubo una modificación en la programación de hormigón de la obra ${obra?.nombre || ""}:\n\n${lineas.join("\n")}\n\nSaludos.${quien}`;
+  const asunto = `Obra ${obra?.nombre || ""} - Modificación en la programación de hormigón`;
+  const href = `mailto:${PROG_MAIL_PARA.join(",")}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo.replace(/\n/g, "\r\n"))}`;
+  setTimeout(() => {
+    const a = el("a", { href });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, 250);
+}
+
 // ---------- Word para Tránsito (media calzada en los días con bomba) ----------
 // Se arma el .docx a mano (un .docx es un zip con unos pocos XML), sin
 // librerías externas. El zip va "sin comprimir" (STORE), que Word acepta.
@@ -597,6 +643,13 @@ function progDiaTransito(iso) {
   return `${nombre} ${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// Normaliza "9:00", "09:00:00" o "9.30" a "HH:MM" (así ordenan bien y el
+// campo de hora del Word las acepta).
+function progHoraHHMM(h) {
+  const m = /^(\d{1,2})[:.](\d{2})/.exec(String(h || "").trim());
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
+}
+
 function progDiasConBomba() {
   const desde = state.prog.desde, hasta = state.prog.hasta;
   const dias = progAgruparPorDia(progFilas("TODAS", desde, hasta));
@@ -604,8 +657,8 @@ function progDiasConBomba() {
   dias.forEach((dia) => {
     const conBomba = dia.filas.filter((r) => !r.sinLlenados && progEsBomba(r.bombeado));
     if (conBomba.length === 0) return;
-    const horas = conBomba.map((r) => r.hora).filter(Boolean).sort();
-    res.push({ fecha: dia.fecha, hora: horas[0] || "" });
+    const horas = conBomba.map((r) => progHoraHHMM(r.hora)).filter(Boolean).sort();
+    res.push({ fecha: dia.fecha, hora: horas[0] || "", detalle: conBomba });
   });
   return res;
 }
@@ -624,7 +677,10 @@ function abrirModalTransito() {
   const lista = el("datalist", { id: "transitoCallesLista" }, TRANSITO_CALLES.map((c) => el("option", { value: c })));
   cont.appendChild(lista);
   dias.forEach((d, i) => {
-    cont.appendChild(el("div", { class: "row", style: "align-items:flex-end;gap:10px;margin-bottom:8px;flex-wrap:wrap", "data-fecha": d.fecha }, [
+    const bombas = d.detalle.slice().sort((a, b) => (progHoraHHMM(a.hora) || "99").localeCompare(progHoraHHMM(b.hora) || "99"))
+      .map((r) => `${progHoraHHMM(r.hora) || "sin hora"} ${PROG_ZONAS[r.zona] || ""} (${r.bombeado}${r.elemento ? " · " + r.elemento : ""})`).join("  |  ");
+    cont.appendChild(el("div", { style: "margin-bottom:10px" }, [
+    el("div", { class: "row", style: "align-items:flex-end;gap:10px;flex-wrap:wrap", "data-fecha": d.fecha }, [
       el("label", { style: "display:flex;align-items:center;gap:6px;width:150px;font-weight:600" }, [
         el("input", { type: "checkbox", checked: "checked", class: "tr-incluir" }),
         progDiaTransito(d.fecha),
@@ -637,6 +693,8 @@ function abrirModalTransito() {
         el("label", {}, "Desde las"),
         el("input", { type: "time", class: "tr-hora", value: d.hora }),
       ]),
+    ]),
+    el("div", { class: "hint", style: "margin:2px 0 0 0" }, `Bombas programadas: ${bombas}`),
     ]));
   });
   openModal("#modalTransito");
@@ -705,6 +763,11 @@ function bindProgramacionHandlers() {
   $("#btnProgExportarPDF").addEventListener("click", exportarProgramacionPDF);
   $("#btnProgWordTransito").addEventListener("click", abrirModalTransito);
   $("#btnTransitoGenerar").addEventListener("click", generarWordTransito);
+  const chk = $("#progAvisarMail");
+  if (chk) {
+    try { chk.checked = localStorage.getItem("progAvisarMail") !== "no"; } catch (e) { /* sin storage */ }
+    chk.addEventListener("change", () => { try { localStorage.setItem("progAvisarMail", chk.checked ? "si" : "no"); } catch (e) { /* sin storage */ } });
+  }
 
   progResetForm(false);
   renderProgramacion();

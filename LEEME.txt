@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.3.0
+Versión 2.3.1
 
 QUÉ ES
 ------
@@ -36,6 +36,18 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.3.1
+-------------------------------------------------------
+- Programación: cada vez que un Administrador agrega, modifica, borra
+  o reprograma un llenado, se abre un borrador de correo (Outlook u
+  otro programa de correo predeterminado) para Hormigón Maldonado,
+  Daniel Ramirez y H. Ceretta de Cielo Azul, con el detalle del cambio
+  (antes / ahora). No se envía solo. Se puede desactivar con la casilla
+  "Avisar a Cielo Azul al modificar".
+- Word para Tránsito: ahora muestra, debajo de cada día, todas las
+  bombas programadas (hora, zona, elemento) para ver de dónde sale la
+  hora propuesta, y normaliza horas como "9:00" o "13:00:00".
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.3.0
 -------------------------------------------------------
