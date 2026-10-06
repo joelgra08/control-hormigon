@@ -543,7 +543,11 @@
         <div class="field"><label>Elemento *</label><select id="plan_elemento"></select></div>
         <div class="field"><label>Nomenclatura</label><input type="text" id="plan_nomenclatura" placeholder="Ej: H08" /></div>
         <div class="field"><label>Cota de arranque</label><input type="text" id="plan_cota" inputmode="decimal" placeholder="Ej: +12,68" /></div>
-        <div class="field"><label>m³ exactos *</label><input type="text" id="plan_m3" inputmode="decimal" placeholder="Ej: 1,24" /></div>
+        <div class="field"><label>Largo (cm)</label><input type="text" id="plan_largoCm" inputmode="decimal" /></div>
+        <div class="field"><label>Ancho (cm)</label><input type="text" id="plan_anchoCm" inputmode="decimal" /></div>
+        <div class="field"><label>Área (m²)</label><input type="text" id="plan_areaM2" inputmode="decimal" /></div>
+        <div class="field"><label>Altura (cm)</label><input type="text" id="plan_alturaCm" inputmode="decimal" /></div>
+        <div class="field"><label>m³ exactos *</label><input type="text" id="plan_m3" inputmode="decimal" placeholder="Ej: 1,24" /><div class="hint">Se calcula con Área×Altura; si lo escribís vos, queda fijo.</div></div>
         <div class="field"><label>Hormigón mínimo *</label><select id="plan_hormigon"></select></div>
         <div class="field"><label>Observaciones</label><input type="text" id="plan_obs" /></div>
         <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="plan_bomba" style="width:auto" /> Con bomba</label></div>

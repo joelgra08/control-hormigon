@@ -117,6 +117,10 @@ async function cargarPlanDia(obraId) {
     ...r,
     m3: Number(r.m3),
     cota: r.cota === null || r.cota === undefined ? null : Number(r.cota),
+    largoCm: r.largoCm == null ? null : Number(r.largoCm),
+    anchoCm: r.anchoCm == null ? null : Number(r.anchoCm),
+    alturaCm: r.alturaCm == null ? null : Number(r.alturaCm),
+    areaM2: r.areaM2 == null ? null : Number(r.areaM2),
     orden: Number(r.orden) || 0,
   }));
 }
@@ -190,8 +194,24 @@ function planAplicarHormigonDefault() {
   if (sugerido && planHormigonesCatalogo().some((h) => h.codigo === sugerido)) $("#plan_hormigon").value = sugerido;
 }
 
+// Misma lógica que el formulario de remitos: Largo×Ancho -> Área; Área×Altura -> m³
+// (salvo que los m³ se hayan escrito a mano, o se editen filas ya cargadas).
+function planCalcDims(origen) {
+  const v = (id) => planNum($("#" + id).value);
+  if (origen === "m3") { planUI.m3Manual = $("#plan_m3").value.trim() !== ""; return; }
+  if (origen === "largo" || origen === "ancho") {
+    const l = v("plan_largoCm"), a = v("plan_anchoCm");
+    if (l > 0 && a > 0) $("#plan_areaM2").value = String(planR2((l / 100) * (a / 100))).replace(".", ",");
+  }
+  if (planUI.m3Manual) return;
+  const area = v("plan_areaM2"), h = v("plan_alturaCm");
+  if (area > 0 && h > 0) $("#plan_m3").value = String(planR2(area * (h / 100))).replace(".", ",");
+}
+
 function planResetForm() {
   planUI.editandoId = null;
+  planUI.m3Manual = false;
+  ["plan_largoCm", "plan_anchoCm", "plan_areaM2", "plan_alturaCm"].forEach((id) => { $("#" + id).value = ""; });
   const zona = $("#plan_zona").value;
   $("#plan_elemento").value = "";
   $("#plan_nomenclatura").value = "";
@@ -225,6 +245,10 @@ async function planGuardarFila() {
     elementoId,
     nomenclatura: $("#plan_nomenclatura").value.trim(),
     cota: planNum($("#plan_cota").value),
+    largoCm: planNum($("#plan_largoCm").value),
+    anchoCm: planNum($("#plan_anchoCm").value),
+    areaM2: planNum($("#plan_areaM2").value),
+    alturaCm: planNum($("#plan_alturaCm").value),
     m3: planR2(m3),
     hormigon,
     bombeado: $("#plan_bomba").checked,
@@ -247,6 +271,11 @@ function planEditarFila(r) {
   $("#plan_nomenclatura").value = r.nomenclatura || "";
   $("#plan_cota").value = r.cota ?? "";
   $("#plan_m3").value = r.m3;
+  planUI.m3Manual = true;
+  $("#plan_largoCm").value = r.largoCm ?? "";
+  $("#plan_anchoCm").value = r.anchoCm ?? "";
+  $("#plan_areaM2").value = r.areaM2 ?? "";
+  $("#plan_alturaCm").value = r.alturaCm ?? "";
   $("#plan_hormigon").value = r.hormigon;
   $("#plan_bomba").checked = !!r.bombeado;
   $("#plan_obs").value = r.observaciones || "";
@@ -306,7 +335,10 @@ function renderPlanDia() {
     const tr = el("tr");
     tr.appendChild(el("td", {}, String(i + 1)));
     tr.appendChild(el("td", {}, PLAN_ZONAS[r.zona] || r.zona));
-    tr.appendChild(el("td", {}, planNombreFila(r)));
+    const dimTxt = [r.largoCm, r.anchoCm, r.alturaCm].some((x) => x != null)
+      ? [r.largoCm, r.anchoCm, r.alturaCm].map((x) => (x == null ? "?" : String(x).replace(".", ","))).join("×") + " cm"
+      : (r.areaM2 != null ? `${String(r.areaM2).replace(".", ",")} m²` : "");
+    tr.appendChild(el("td", {}, [planNombreFila(r), dimTxt ? el("div", { class: "hint" }, dimTxt) : null]));
     tr.appendChild(el("td", {}, r.cota === null || r.cota === undefined ? "-" : `${r.cota > 0 ? "+" : ""}${String(r.cota).replace(".", ",")}`));
     tr.appendChild(el("td", { style: "text-align:right" }, fmtM3(r.m3)));
     tr.appendChild(el("td", {}, r.hormigon));
@@ -337,11 +369,11 @@ function renderPlanDia() {
 // ---------------------------------------------------------------
 function planDescargarModelo() {
   const aoa = [
-    ["Zona", "Elemento", "Nomenclatura", "Cota de arranque", "m3", "Hormigón mínimo", "Bomba", "Observaciones"],
-    ["Torre", "P", "H08", "+12,68", 1.24, "C45", "Sí", ""],
-    ["Torre", "P", "H09", "+12,68", 2.08, "C45", "Sí", ""],
-    ["Torre", "VR", "R101", "+12,00", 4, "C30", "No", ""],
-    ["Basamento", "L", "Losa sobre N1", "+9,30", 38.5, "C35", "Sí", ""],
+    ["Zona", "Elemento", "Nomenclatura", "Cota de arranque", "Largo (cm)", "Ancho (cm)", "Altura (cm)", "m3", "Hormigón mínimo", "Bomba", "Observaciones"],
+    ["Torre", "P", "H08", "+12,68", 40, 100, 310, "", "C45", "Sí", ""],
+    ["Torre", "P", "H09", "+12,68", "", "", "", 2.08, "C45", "Sí", ""],
+    ["Torre", "VR", "R101", "+12,00", 20, 50, 400, "", "C30", "No", ""],
+    ["Basamento", "L", "Losa sobre N1", "+9,30", "", "", "", 38.5, "C35", "Sí", ""],
   ];
   const ayuda = [
     ["Cómo completar"],
@@ -349,6 +381,7 @@ function planDescargarModelo() {
     ["Elemento: código del catálogo (P, L, VL, VR, CT, CP, TD, HL...) o su nombre."],
     ["Nomenclatura: como la usás hoy (H08, Losa N106 S1, etc.)."],
     ["Cota de arranque: con o sin signo, coma o punto (+12,68)."],
+    ["Largo, Ancho y Altura (cm): opcionales. Si los cargás y dejás m3 vacío, m3 = Largo×Ancho×Altura (ej. 40×100×310 cm = 1,24 m3). Si cargás m3, queda ese valor."],
     ["m3: lo que realmente lleva ese elemento (exacto, sin redondear)."],
     ["Hormigón mínimo: C20, C25, C30, C35, C45... Si lo dejás vacío se usa el habitual: P=C45, L y VL=C35, CT, VR, CP y TD=C30. En los demás elementos (HL, pantallas, etc.) es obligatorio."],
     ["Bomba: Sí o No (opcional)."],
@@ -356,7 +389,7 @@ function planDescargarModelo() {
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 11 }, { wch: 11 }, { wch: 22 }, { wch: 16 }, { wch: 8 }, { wch: 16 }, { wch: 8 }, { wch: 28 }];
+  ws["!cols"] = [{ wch: 11 }, { wch: 11 }, { wch: 22 }, { wch: 16 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 8 }, { wch: 16 }, { wch: 8 }, { wch: 28 }];
   XLSX.utils.book_append_sheet(wb, ws, "Plan");
   const wa = XLSX.utils.aoa_to_sheet(ayuda);
   wa["!cols"] = [{ wch: 110 }];
@@ -386,12 +419,16 @@ function planLeerMatriz(matriz) {
     elemento: col((x) => x === "elemento"),
     nomen: col((x) => x.startsWith("nomenclatura")),
     cota: col((x) => x.startsWith("cota")),
+    largo: col((x) => x.startsWith("largo")),
+    ancho: col((x) => x.startsWith("ancho")),
+    alto: col((x) => x.startsWith("altura")),
+    area: col((x) => x.startsWith("area")),
     m3: col((x) => x === "m3" || x === "m³" || x.startsWith("m3")),
     horm: col((x) => x.startsWith("hormigon")),
     bomba: col((x) => x.startsWith("bomba")),
     obs: col((x) => x.startsWith("observ")),
   };
-  if (c.m3 < 0) return { filas: [], errores: ['No encontré la columna "m3".'] };
+  if (c.m3 < 0 && (c.largo < 0 || c.ancho < 0 || c.alto < 0)) return { filas: [], errores: ['No encontré la columna "m3".'] };
   const filas = [], errores = [];
   const hormigones = planHormigonesCatalogo().map((x) => x.codigo);
   for (let i = h + 1; i < matriz.length; i++) {
@@ -401,8 +438,12 @@ function planLeerMatriz(matriz) {
     const get = (k) => (c[k] >= 0 ? f[c[k]] : "");
     const el_ = planBuscarElemento(get("elemento"));
     if (!el_) { errores.push(`Fila ${n}: no reconozco el elemento "${get("elemento")}".`); continue; }
-    const m3 = planNum(get("m3"));
-    if (m3 === null || m3 <= 0) { errores.push(`Fila ${n}: faltan los m³.`); continue; }
+    const largoCm = planNum(get("largo")), anchoCm = planNum(get("ancho")), alturaCm = planNum(get("alto"));
+    let areaM2 = planNum(get("area"));
+    if (largoCm > 0 && anchoCm > 0) areaM2 = planR2((largoCm / 100) * (anchoCm / 100));
+    let m3 = planNum(get("m3"));
+    if ((m3 === null || m3 <= 0) && areaM2 > 0 && alturaCm > 0) m3 = planR2(areaM2 * (alturaCm / 100));
+    if (m3 === null || m3 <= 0) { errores.push(`Fila ${n}: faltan los m³ (o Largo, Ancho y Altura).`); continue; }
     const z = planNorm(get("zona"));
     const zona = z.startsWith("torre") ? "TORRE" : z.startsWith("basam") ? "BASAMENTO" : null;
     if (!zona) { errores.push(`Fila ${n}: la zona tiene que ser Torre o Basamento.`); continue; }
@@ -416,6 +457,7 @@ function planLeerMatriz(matriz) {
       zona,
       nomenclatura: String(get("nomen") ?? "").trim(),
       cota: planNum(get("cota")),
+      largoCm, anchoCm, alturaCm, areaM2,
       m3: planR2(m3),
       hormigon: horm,
       bombeado: b === "si" || b === "sí" || b === "s" || b === "x" || b === "1" || b === "bomba",
@@ -682,7 +724,8 @@ async function planGuardarRemitos() {
         nomenclatura: p ? p.nomenclatura : "",
         sector: "", asentamiento: null,
         nivelFondo: p && p.cota !== null && p.cota !== undefined ? p.cota : null,
-        largoCm: null, anchoCm: null, alturaCm: null, areaM2: null,
+        largoCm: p ? p.largoCm ?? null : null, anchoCm: p ? p.anchoCm ?? null : null,
+        alturaCm: p ? p.alturaCm ?? null : null, areaM2: p ? p.areaM2 ?? null : null,
         volumen: planR2(planNum(l.m3)),
         cuadrillaId: p ? cuad[p.zona] : null,
         bombeado: p ? !!p.bombeado : false,
@@ -720,6 +763,11 @@ function bindPlanDiaHandlers() {
   $("#planFecha").value = state.planFecha;
   $("#planFecha").addEventListener("change", (e) => { state.planFecha = e.target.value || todayISO(); planUI.preview = null; planResetForm(); renderPlanDia(); });
   $("#plan_elemento").addEventListener("change", planAplicarHormigonDefault);
+  $("#plan_largoCm").addEventListener("input", () => planCalcDims("largo"));
+  $("#plan_anchoCm").addEventListener("input", () => planCalcDims("ancho"));
+  $("#plan_areaM2").addEventListener("input", () => planCalcDims("area"));
+  $("#plan_alturaCm").addEventListener("input", () => planCalcDims("alto"));
+  $("#plan_m3").addEventListener("input", () => planCalcDims("m3"));
   $("#btnPlanAgregar").addEventListener("click", planGuardarFila);
   $("#btnPlanCancelar").addEventListener("click", planResetForm);
   $("#btnPlanImportar").addEventListener("click", () => $("#planArchivo").click());

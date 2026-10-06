@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.5.0
+Versión 2.5.1
 
 QUÉ ES
 ------
@@ -36,6 +36,13 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.5.1
+------------------------------
+- Plan del día: cada fila admite Largo, Ancho y Altura (cm) como en el remito
+  (Largo×Ancho = Área; Área×Altura = m3). También se puede escribir el m3 directo.
+  Las dimensiones pasan a las líneas de los remitos y están en el Excel modelo.
+  Si ya corriste el script 16 antes de esta versión, volvé a correrlo (agrega columnas).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.5.0
 -------------------------------------------------------
