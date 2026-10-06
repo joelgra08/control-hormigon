@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.3.6";
+const APP_VERSION = "2.4.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -587,6 +587,8 @@ function bindGlobalHandlers() {
   $("#formHierro").addEventListener("submit", onSubmitHierro);
   $("#btnCancelarHierro").addEventListener("click", resetHierroForm);
   $("#btnAgregarItemHierro").addEventListener("click", onAgregarItemHierro);
+  $("#btnWaHierroAbrir").addEventListener("click", enviarWhatsappHierro);
+  $("#btnWaHierroCopiar").addEventListener("click", copiarWhatsappHierro);
   $("#btnCancelarItemHierro").addEventListener("click", resetLineaHierroForm);
   $("#itemHierro_tipo").addEventListener("change", onHierroTipoChange);
   $("#btnBuscarHierro").addEventListener("click", () => {
@@ -1048,17 +1050,27 @@ function renderHierroDiametroSelect() {
 }
 
 // Barras: se piden por tonelada. Perfiles: se piden por unidad.
+// "LISA" (barra lisa) es solo una opción del formulario: se guarda como un
+// ítem de tipo PERFIL con su descripción ("Barra lisa Ø6 mm x 6 m") y se
+// pide por unidades, así no hace falta tocar la base de datos.
 function unidadHierro(tipo) {
-  return tipo === "PERFIL" ? "un" : "Tn";
+  return tipo === "PERFIL" || tipo === "LISA" ? "un" : "Tn";
 }
 
 function onHierroTipoChange() {
   const tipo = $("#itemHierro_tipo").value;
-  $("#hierroCamposBarra").style.display = tipo === "BARRA" ? "" : "none";
-  $("#hierroCamposBarraLongitud").style.display = tipo === "BARRA" ? "" : "none";
+  const conDiametro = tipo === "BARRA" || tipo === "LISA";
+  const enUnidades = tipo === "PERFIL" || tipo === "LISA";
+  $("#hierroCamposBarra").style.display = conDiametro ? "" : "none";
+  $("#hierroCamposBarraLongitud").style.display = conDiametro ? "" : "none";
   $("#hierroCamposPerfil").style.display = tipo === "PERFIL" ? "" : "none";
-  $("#itemHierro_cantidadLabel").textContent = tipo === "PERFIL" ? "Cantidad (unidades) *" : "Cantidad (toneladas) *";
-  $("#itemHierro_cantidad").step = tipo === "PERFIL" ? "1" : "0.01";
+  $("#itemHierro_cantidadLabel").textContent = enUnidades ? "Cantidad (unidades) *" : "Cantidad (toneladas) *";
+  $("#itemHierro_cantidad").step = enUnidades ? "1" : "0.01";
+  // Al cambiar de tipo, la longitud pasa a la habitual: 6 m la lisa, 12 m la conformada.
+  if (conDiametro && onHierroTipoChange.anterior !== undefined && onHierroTipoChange.anterior !== tipo) {
+    $("#itemHierro_longitud").value = tipo === "LISA" ? 6 : 12;
+  }
+  onHierroTipoChange.anterior = tipo;
 }
 
 // ---------- Ítem del pedido (sub-formulario) ----------
@@ -1085,13 +1097,27 @@ function leerFormLineaHierro() {
   };
 
   const tipo = get("itemHierro_tipo");
-  if (tipo === "BARRA" && !get("itemHierro_diametro")) { toast("Falta el diámetro", "error"); return null; }
+  if ((tipo === "BARRA" || tipo === "LISA") && !get("itemHierro_diametro")) { toast("Falta el diámetro", "error"); return null; }
   if (tipo === "PERFIL" && !get("itemHierro_perfilNombre")) { toast("Falta el nombre del perfil", "error"); return null; }
   const cantidad = getNum("itemHierro_cantidad");
   if (cantidad === null) { toast("Falta la cantidad", "error"); return null; }
 
+  const idItem = state.editingLineaHierroIdx !== null ? state.lineasHierroForm[state.editingLineaHierroIdx].id : uid("hie_it");
+  if (tipo === "LISA") {
+    const lon = getNum("itemHierro_longitud") || 6;
+    return {
+      id: idItem,
+      tipo: "PERFIL",
+      diametroMm: null,
+      longitudM: null,
+      perfilNombre: `Barra lisa Ø${get("itemHierro_diametro")} mm x ${String(lon).replace(".", ",")} m`,
+      cantidad,
+      unidad: "un",
+      observaciones: get("itemHierro_observaciones"),
+    };
+  }
   return {
-    id: state.editingLineaHierroIdx !== null ? state.lineasHierroForm[state.editingLineaHierroIdx].id : uid("hie_it"),
+    id: idItem,
     tipo,
     diametroMm: tipo === "BARRA" ? parseInt(get("itemHierro_diametro"), 10) : null,
     longitudM: tipo === "BARRA" ? (getNum("itemHierro_longitud") || 12) : null,
@@ -1154,7 +1180,7 @@ function renderLineasHierroFormTable() {
   }
   state.lineasHierroForm.forEach((item, idx) => {
     const tr = el("tr");
-    tr.appendChild(el("td", {}, item.tipo === "BARRA" ? "Barra" : "Perfil"));
+    tr.appendChild(el("td", {}, item.tipo === "BARRA" ? "Barra" : /^Barra lisa/i.test(item.perfilNombre || "") ? "Barra lisa" : "Perfil"));
     tr.appendChild(el("td", {}, detalleLineaHierro(item)));
     tr.appendChild(el("td", {}, `${item.cantidad} ${item.unidad}`));
     tr.appendChild(el("td", {}, item.observaciones || "-"));
@@ -1231,6 +1257,7 @@ async function onSubmitHierro(e) {
   if (!get("hierro_fecha")) return toast("Falta la fecha", "error");
   if (state.lineasHierroForm.length === 0) return toast("Agregá al menos un ítem a este pedido", "error");
 
+  const eraNuevo = !state.editingHierroId;
   const pedidoId = state.editingHierroId || uid("hie");
   const existente = state.editingHierroId ? byId(state.pedidosHierro, state.editingHierroId) : null;
 
@@ -1279,8 +1306,45 @@ async function onSubmitHierro(e) {
   if (erroresFactura.length > 0) {
     toast(`Pedido guardado, pero no se pudo subir: ${erroresFactura.join(" · ")}`, "error");
   } else {
-    toast(state.editingHierroId ? "Pedido actualizado" : "Pedido registrado", "ok");
+    toast(eraNuevo ? "Pedido registrado" : "Pedido actualizado", "ok");
+    if (eraNuevo && puedeAgregar()) abrirWhatsappHierro(pedidoId);
   }
+}
+
+// ---------- Mensaje de WhatsApp para el grupo de pedidos de hierro ----------
+function mensajeWhatsappHierro(pedidoId) {
+  const p = byId(state.pedidosHierro, pedidoId);
+  if (!p) return "";
+  const obra = byId(state.obras, state.obraId);
+  const n = (v) => Number(v).toLocaleString("es-UY", { maximumFractionDigits: 2 });
+  const lineas = [`*PEDIDO DE HIERRO - Obra ${obra?.nombre || ""}*`, `Fecha: ${fmtFechaCorta(p.fecha)}`];
+  if (p.proveedor) lineas.push(`Proveedor: ${p.proveedor}`);
+  lineas.push("", "*Detalle:*");
+  state.pedidoHierroLineas.filter((l) => l.pedidoId === pedidoId).forEach((it) => {
+    lineas.push(`• ${detalleLineaHierro(it)} - *${n(it.cantidad)} ${it.unidad}*${it.observaciones ? ` (${it.observaciones})` : ""}`);
+  });
+  if (p.observaciones) lineas.push("", `Observaciones: ${p.observaciones}`);
+  return lineas.join("\n");
+}
+
+function abrirWhatsappHierro(pedidoId) {
+  const txt = mensajeWhatsappHierro(pedidoId);
+  if (!txt) return;
+  $("#waHierroTexto").value = txt;
+  openModal("#modalWhatsappHierro");
+}
+
+function enviarWhatsappHierro() {
+  const txt = $("#waHierroTexto").value.trim();
+  if (!txt) return toast("El mensaje está vacío", "error");
+  window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, "_blank", "noopener");
+}
+
+async function copiarWhatsappHierro() {
+  const area = $("#waHierroTexto");
+  try { await navigator.clipboard.writeText(area.value); }
+  catch (e) { area.select(); document.execCommand("copy"); }
+  toast("Mensaje copiado", "ok");
 }
 
 function editarHierro(pedidoId) {
@@ -1368,6 +1432,11 @@ function renderHierro() {
     }
     tr.appendChild(tdFactura);
     const tdAcc = el("td");
+    if (puedeAgregar()) {
+      const btnWa = el("button", { class: "ghost", title: "Armar mensaje de WhatsApp" }, "💬");
+      btnWa.addEventListener("click", () => abrirWhatsappHierro(p.id));
+      tdAcc.appendChild(btnWa);
+    }
     if (esAdmin()) {
       const btnEd = el("button", { class: "ghost", title: "Editar" }, "✎");
       btnEd.addEventListener("click", () => editarHierro(p.id));
@@ -1375,7 +1444,7 @@ function renderHierro() {
       btnDel.addEventListener("click", () => borrarHierro(p.id));
       tdAcc.appendChild(btnEd);
       tdAcc.appendChild(btnDel);
-    } else {
+    } else if (!puedeAgregar()) {
       tdAcc.appendChild(document.createTextNode("-"));
     }
     tr.appendChild(tdAcc);

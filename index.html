@@ -570,6 +570,7 @@
             <label>Tipo *</label>
             <select name="itemHierro_tipo" id="itemHierro_tipo">
               <option value="BARRA">Barra conformada (Ø)</option>
+              <option value="LISA">Barra lisa (Ø)</option>
               <option value="PERFIL">Perfil</option>
             </select>
           </div>
@@ -674,6 +675,19 @@
 </main>
 
 <!-- Modal Obra -->
+<div class="modal-backdrop" id="modalWhatsappHierro">
+  <div class="modal">
+    <h3>Mensaje para el grupo de pedidos de hierro</h3>
+    <p class="hint">Revisalo o corregilo si hace falta. "Abrir WhatsApp" lo deja listo para elegir el grupo y mandarlo; no se envía solo.</p>
+    <textarea id="waHierroTexto" rows="12" style="width:100%;font-family:inherit"></textarea>
+    <div class="row end" style="margin-top:12px">
+      <button type="button" data-close-modal>Cerrar</button>
+      <button type="button" id="btnWaHierroCopiar">Copiar</button>
+      <button type="button" class="primary" id="btnWaHierroAbrir">Abrir WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modalTransito">
   <div class="modal">
     <h3>Word para Tránsito — media calzada</h3>
