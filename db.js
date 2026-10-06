@@ -38,6 +38,7 @@ const STORES = {
   pedidosHierro: "pedidos_hierro",
   pedidoHierroLineas: "pedido_hierro_lineas",
   programacion: "programacion",
+  planDia: "plan_dia",
   config: null, // ver nota arriba: vive en localStorage, no en Supabase
 };
 

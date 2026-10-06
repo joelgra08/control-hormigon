@@ -614,3 +614,12 @@ tr.prog-arrastrando { opacity: 0.4; }
 /* Casilla "Aviso a Cielo Azul" dentro del formulario de Programación */
 .aviso-mail { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 0 10px; font-size: 13px; cursor: pointer; align-self: center; }
 .aviso-mail input { width: auto; margin: 0; }
+
+/* Plan del día: vista previa del reparto */
+.plan-remito { border: 1px solid #becdc4; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff; }
+.plan-remito-mal { border-color: #e2a39e; background: #fdf3f2; }
+.plan-remito-cab { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.plan-linea { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.plan-linea select { flex: 1 1 260px; min-width: 0; }
+.plan-resumen { border-collapse: collapse; width: 100%; max-width: 640px; font-size: 14px; }
+.plan-resumen th, .plan-resumen td { border-bottom: 1px solid #dfe7e2; padding: 5px 8px; text-align: left; }

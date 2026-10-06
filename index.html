@@ -48,6 +48,7 @@
 <nav class="tabs">
   <button data-tab="remitos" class="active">Remitos</button>
   <button data-tab="programacion">Programación</button>
+  <button data-tab="plan" class="solo-puede-agregar">Plan del día</button>
   <button data-tab="tarjeta">Tarjeta diaria</button>
   <button data-tab="resumen">Resumen mensual</button>
   <button data-tab="probetas">Probetas</button>
@@ -519,6 +520,93 @@
     <div id="personalRoot"></div>
   </section>
 
+  <!-- ===================== PLAN DEL DÍA ===================== -->
+  <section id="view-plan" class="view">
+    <div class="panel">
+      <h2>Plan del día</h2>
+      <p class="hint">Cargá lo que se va a llenar ese día, con los m³ exactos de cada elemento y el hormigón mínimo que pide. A última hora cargás solo los remitos y la app los reparte entre los elementos. Un hormigón más fuerte puede cubrir uno más débil, nunca al revés.</p>
+      <div id="planAviso" class="hint" style="display:none;color:#b3413a;font-weight:600"></div>
+      <div class="row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div class="field"><label>Día</label><input type="date" id="planFecha" /></div>
+        <button type="button" id="btnPlanImportar" class="ghost">📥 Importar desde Excel</button>
+        <input type="file" id="planArchivo" accept=".xlsx,.xls,.csv" style="display:none" />
+        <button type="button" id="btnPlanModelo" class="ghost">📄 Descargar planilla modelo</button>
+        <button type="button" id="btnPlanVaciar" class="ghost danger" style="margin-left:auto">Vaciar plan del día</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Agregar al plan</h3>
+      <div class="form-grid wide">
+        <div class="field"><label>Zona *</label>
+          <select id="plan_zona"><option value="TORRE">Torre</option><option value="BASAMENTO">Basamento</option></select></div>
+        <div class="field"><label>Elemento *</label><select id="plan_elemento"></select></div>
+        <div class="field"><label>Nomenclatura</label><input type="text" id="plan_nomenclatura" placeholder="Ej: H08" /></div>
+        <div class="field"><label>Cota de arranque</label><input type="text" id="plan_cota" inputmode="decimal" placeholder="Ej: +12,68" /></div>
+        <div class="field"><label>m³ exactos *</label><input type="text" id="plan_m3" inputmode="decimal" placeholder="Ej: 1,24" /></div>
+        <div class="field"><label>Hormigón mínimo *</label><select id="plan_hormigon"></select></div>
+        <div class="field"><label>Observaciones</label><input type="text" id="plan_obs" /></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="plan_bomba" style="width:auto" /> Con bomba</label></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="btnPlanAgregar" class="primary">+ Agregar al plan</button>
+        <button type="button" id="btnPlanCancelar" style="display:none">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Plan del día cargado</h3>
+      <div id="planVacio" class="empty-state">Todavía no cargaste nada en el plan de este día.</div>
+      <div id="tablaPlanWrap" class="table-scroll cards-movil">
+        <table id="tablaPlan">
+          <thead><tr><th>#</th><th>Zona</th><th>Elemento</th><th>Cota</th><th>m³</th><th>Hormigón</th><th>Bomba</th><th>Notas</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="hint" id="planResumen" style="font-weight:600;margin-top:8px"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin-top:0">Remitos del día</h3>
+      <p class="hint">Se reparten en el orden de la hora de descarga (o de llegada a obra). Podés tipearlos o pegar filas desde Excel con estas columnas: N° remito, hormigón, m³, hora a obra, hora descarga.</p>
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="field"><label>Proveedor</label><select id="planProveedor"></select></div>
+        <div class="field"><label>Cuadrilla Torre</label><select id="planCuadTorre"></select></div>
+        <div class="field"><label>Cuadrilla Basamento</label><select id="planCuadBasamento"></select></div>
+      </div>
+      <div class="table-scroll" style="max-height:none">
+        <table id="tablaPlanRemitos">
+          <thead><tr><th>#</th><th>N° remito</th><th>Hormigón</th><th>m³</th><th>Hora a obra</th><th>Hora descarga</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="actions" style="align-items:center;flex-wrap:wrap">
+        <button type="button" id="btnPlanMasRemito" class="ghost">+ Remito</button>
+        <span class="hint" id="planRemitosTotal" style="margin:0 0 0 8px"></span>
+      </div>
+      <details style="margin-top:10px"><summary class="hint" style="cursor:pointer">Pegar desde Excel</summary>
+        <textarea id="planPegado" rows="4" style="width:100%;margin-top:6px" placeholder="108068	C45	9	09:10	09:25"></textarea>
+        <button type="button" id="btnPlanPegar" class="ghost" style="margin-top:6px">Agregar los remitos pegados</button>
+      </details>
+      <div class="actions" style="margin-top:14px">
+        <button type="button" id="btnPlanCalcular" class="primary">Calcular reparto</button>
+      </div>
+    </div>
+
+    <div class="panel" id="planPreviewPanel" style="display:none">
+      <h3 style="margin-top:0">Vista previa del reparto</h3>
+      <p class="hint">Revisá cómo quedó cada remito. Podés cambiar el elemento o los m³ de cada línea, agregar o quitar líneas. Cada remito tiene que sumar sus m³ para poder guardar.</p>
+      <div id="planPreviewRemitos"></div>
+      <h4>Resumen por elemento</h4>
+      <div id="planPreviewResumen"></div>
+      <div class="actions" style="margin-top:14px;align-items:center;flex-wrap:wrap">
+        <button type="button" id="btnPlanGuardar" class="primary">Guardar remitos</button>
+        <button type="button" id="btnPlanDescartar">Descartar</button>
+        <span class="hint" id="planPreviewEstado" style="color:#b3413a;margin:0 0 0 8px"></span>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== PEDIDOS DE HIERRO ===================== -->
   <section id="view-hierro" class="view">
     <div class="panel solo-puede-agregar">
@@ -777,6 +865,7 @@
 <script src="seed-summit-data.js"></script>
 <script src="auth.js"></script>
 <script src="programacion.js"></script>
+<script src="plandia.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

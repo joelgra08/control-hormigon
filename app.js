@@ -5,11 +5,13 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.4.2";
+const APP_VERSION = "2.5.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
   obraId: null,
+  planDia: [],
+  planFecha: null,
   obras: [],
   catalogo: { elementos: [], hormigones: [], proveedores: [], cuadrillas: [], colocacion: [], equipos: [] },
   personal: [],     // nómina (nombre, apellido, cargo, equipo)
@@ -260,6 +262,7 @@ async function loadObraData(obraId) {
   state.pedidosHierro = f(pedidosHierro);
   state.pedidoHierroLineas = pedidoHierroLineas.filter((l) => byId(state.pedidosHierro, l.pedidoId) || l.obraId === obraId);
   await cargarProgramacion(obraId);
+  await cargarPlanDia(obraId);
 }
 
 async function setObraActiva(obraId) {
@@ -403,6 +406,7 @@ function renderAll() {
   resetHierroForm();
   renderHierro();
   renderProgramacion();
+  renderPlanDia();
 }
 
 // ---------- Tabs ----------
@@ -606,6 +610,7 @@ function bindGlobalHandlers() {
 
   // Programación de hormigón
   bindProgramacionHandlers();
+  bindPlanDiaHandlers();
 }
 
 function openObraModal(obra) {
@@ -673,6 +678,7 @@ async function borrarObra(obraId) {
 
   const stores = ["remitos", "catalogoElementos", "catalogoHormigones", "catalogoProveedores", "catalogoCuadrillas", "catalogoColocacion", "catalogoEquipos", "diasExtra", "personalMensual", "personal", "pedidosHierro"];
   if (state.programacionDisponible) stores.push("programacion");
+  if (state.planDiaDisponible) stores.push("planDia");
   for (const s of stores) {
     const all = await DB.getAll(s);
     for (const item of all.filter((x) => x.obraId === obraId)) await DB.delete(s, item.id);

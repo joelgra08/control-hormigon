@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.4.2
+Versión 2.5.0
 
 QUÉ ES
 ------
@@ -36,6 +36,24 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.5.0
+-------------------------------------------------------
+- Nueva pestaña "Plan del día" (Administrador y Asistente). Requiere
+  correr antes supabase/16_plan_del_dia.sql en Supabase (crea la tabla).
+  1) Se carga lo que se llena en el día con el desglose exacto: zona,
+     elemento, nomenclatura, cota de arranque, m3 exactos, hormigón
+     mínimo y bomba. A mano o importando un Excel (hay planilla modelo).
+  2) A última hora se cargan solo los remitos (N°, hormigón, m3, hora a
+     obra, hora de descarga), a mano o pegando desde Excel.
+  3) "Calcular reparto": se reparten los remitos por hora entre los
+     elementos del plan. Un hormigón más fuerte puede cubrir uno más
+     débil (nunca al revés); un remito que cruza dos elementos se parte
+     en varias líneas; lo que sobra es Desperdicio.
+  4) Vista previa editable y recién ahí "Guardar remitos": se crean
+     remitos normales (editables en Remitos). La cota de arranque queda
+     en "Nivel de fondo" y la zona define la cuadrilla (Torre/Basamento).
+  La carga de remitos de siempre sigue igual.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.4.2
 -------------------------------------------------------
