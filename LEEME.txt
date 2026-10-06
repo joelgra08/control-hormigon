@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.4.0
+Versión 2.4.1
 
 QUÉ ES
 ------
@@ -37,10 +37,16 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
 
+QUÉ CAMBIÓ EN LA VERSIÓN 2.4.1
+-------------------------------------------------------
+- La barra lisa se pide por tonelada (Tn), igual que la conformada. Al
+  editar un pedido, una barra lisa vuelve a cargarse como "Barra lisa"
+  con su diámetro y largo.
+
 QUÉ CAMBIÓ EN LA VERSIÓN 2.4.0
 -------------------------------------------------------
 - Pedidos de hierro: nuevo tipo "Barra lisa (Ø)" (por defecto 6 m de
-  largo, se pide por unidades). Se guarda como ítem de tipo perfil con la
+  largo, se pide por tonelada). Se guarda como ítem de tipo perfil con la
   descripción "Barra lisa Ø6 mm x 6 m", sin cambios en la base de datos.
 - Pedidos de hierro: al guardar un pedido nuevo se abre un mensaje de
   WhatsApp listo (fecha, proveedor, detalle, observaciones). Se puede

@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.4.0";
+const APP_VERSION = "2.4.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -1052,15 +1052,15 @@ function renderHierroDiametroSelect() {
 // Barras: se piden por tonelada. Perfiles: se piden por unidad.
 // "LISA" (barra lisa) es solo una opción del formulario: se guarda como un
 // ítem de tipo PERFIL con su descripción ("Barra lisa Ø6 mm x 6 m") y se
-// pide por unidades, así no hace falta tocar la base de datos.
+// pide por tonelada (como la conformada), así no hace falta tocar la base de datos.
 function unidadHierro(tipo) {
-  return tipo === "PERFIL" || tipo === "LISA" ? "un" : "Tn";
+  return tipo === "PERFIL" ? "un" : "Tn";
 }
 
 function onHierroTipoChange() {
   const tipo = $("#itemHierro_tipo").value;
   const conDiametro = tipo === "BARRA" || tipo === "LISA";
-  const enUnidades = tipo === "PERFIL" || tipo === "LISA";
+  const enUnidades = tipo === "PERFIL";
   $("#hierroCamposBarra").style.display = conDiametro ? "" : "none";
   $("#hierroCamposBarraLongitud").style.display = conDiametro ? "" : "none";
   $("#hierroCamposPerfil").style.display = tipo === "PERFIL" ? "" : "none";
@@ -1112,7 +1112,7 @@ function leerFormLineaHierro() {
       longitudM: null,
       perfilNombre: `Barra lisa Ø${get("itemHierro_diametro")} mm x ${String(lon).replace(".", ",")} m`,
       cantidad,
-      unidad: "un",
+      unidad: "Tn",
       observaciones: get("itemHierro_observaciones"),
     };
   }
@@ -1144,10 +1144,12 @@ function editarItemHierroForm(idx) {
   const item = state.lineasHierroForm[idx];
   const form = $("#formItemHierro");
   renderHierroDiametroSelect();
-  form.itemHierro_tipo.value = item.tipo;
+  // Una barra lisa guardada vuelve a cargarse como "Barra lisa" con su Ø y largo.
+  const lisa = item.tipo === "PERFIL" ? /^Barra lisa Ø(\d+) mm x ([\d,.]+) m$/i.exec(item.perfilNombre || "") : null;
+  form.itemHierro_tipo.value = lisa ? "LISA" : item.tipo;
   onHierroTipoChange();
-  form.itemHierro_diametro.value = item.diametroMm || "";
-  form.itemHierro_longitud.value = item.longitudM || 12;
+  form.itemHierro_diametro.value = lisa ? lisa[1] : (item.diametroMm || "");
+  form.itemHierro_longitud.value = lisa ? lisa[2].replace(",", ".") : (item.longitudM || 12);
   form.itemHierro_perfilNombre.value = item.perfilNombre || "";
   form.itemHierro_cantidad.value = item.cantidad ?? "";
   form.itemHierro_observaciones.value = item.observaciones || "";
