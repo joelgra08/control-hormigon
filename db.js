@@ -117,9 +117,19 @@ const DB = {
   async getAll(store) {
     if (store === "config") return configGetAll();
     const table = STORES[store];
-    const { data, error } = await supabaseClient.from(table).select("*");
-    if (error) { reportDbError(error, `leer ${store}`); return []; }
-    return (data || []).map(rowFromDb);
+    // Supabase devuelve como máximo 1000 filas por consulta: se pide por
+    // tandas (ordenadas por id para que no se repitan ni se salteen filas)
+    // hasta que no venga ninguna más.
+    const TANDA = 1000;
+    const todas = [];
+    for (let desde = 0; ; ) {
+      const { data, error } = await supabaseClient.from(table).select("*").order("id", { ascending: true }).range(desde, desde + TANDA - 1);
+      if (error) { reportDbError(error, `leer ${store}`); return []; }
+      if (!data || data.length === 0) break;
+      todas.push(...data);
+      desde += data.length;
+    }
+    return todas.map(rowFromDb);
   },
 
   async get(store, key) {

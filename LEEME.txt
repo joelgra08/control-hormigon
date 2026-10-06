@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.4.1
+Versión 2.4.2
 
 QUÉ ES
 ------
@@ -36,6 +36,14 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.4.2
+-------------------------------------------------------
+- Corrección importante: la app leía como máximo 1000 filas por tabla
+  (límite de Supabase), por lo que, al superar ese número, se cortaban
+  remitos/ítems (se notó al cargar el histórico). Ahora lee todo por
+  tandas. Con esto aparecen los remitos históricos en Resumen mensual,
+  Remitos y reportes.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.4.1
 -------------------------------------------------------
