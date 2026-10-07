@@ -634,7 +634,32 @@ tr.prog-arrastrando { opacity: 0.4; }
 .plan-resumen th, .plan-resumen td { border-bottom: 1px solid #dfe7e2; padding: 5px 8px; text-align: left; }
 
 /* ---------- Modo oscuro (solo en pantalla; al imprimir/PDF siempre claro) ---------- */
-#btnTema { padding: 4px 9px; line-height: 1; font-size: 15px; }
+button.tema-switch {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: none; color: var(--top-text);
+  padding: 4px 6px; font-size: 13px; white-space: nowrap;
+}
+button.tema-switch:hover { background: transparent !important; color: #fff; }
+.tema-pista {
+  position: relative; width: 36px; height: 20px; border-radius: 999px;
+  background: rgba(255,255,255,0.28); transition: background .2s; flex: none;
+}
+.tema-perilla {
+  position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .2s;
+}
+button.tema-switch[aria-checked="true"] .tema-pista { background: #6fa886; }
+button.tema-switch[aria-checked="true"] .tema-perilla { transform: translateX(16px); }
+button.tema-switch:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 6px; }
+
+/* Deslizamiento entre pestañas: solo escritorio y si no se pidió reducir movimiento */
+@media (min-width: 901px) and (prefers-reduced-motion: no-preference) {
+  .view.slide-der { animation: slideDer .28s ease-out; }
+  .view.slide-izq { animation: slideIzq .28s ease-out; }
+  @keyframes slideDer { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+  @keyframes slideIzq { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: none; } }
+  main { overflow-x: clip; }
+}
 @media screen {
   :root[data-theme="dark"] {
     color-scheme: dark;

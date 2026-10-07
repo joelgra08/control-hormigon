@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.7.0";
+const APP_VERSION = "2.7.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -444,8 +444,22 @@ function bindTabs() {
   showTab("remitos");
 }
 function showTab(tab) {
-  $all("nav.tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
-  $all(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + tab));
+  const botones = $all("nav.tabs button");
+  const previa = botones.findIndex((b) => b.classList.contains("active"));
+  const nueva = botones.findIndex((b) => b.dataset.tab === tab);
+  botones.forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  $all(".view").forEach((v) => {
+    v.classList.remove("slide-der", "slide-izq");
+    v.classList.toggle("active", v.id === "view-" + tab);
+  });
+  // Animación de deslizamiento (solo escritorio; el CSS la ignora en celular)
+  if (previa >= 0 && nueva >= 0 && previa !== nueva) {
+    const vista = $("#view-" + tab);
+    if (vista) {
+      void vista.offsetWidth; // reinicia la animación
+      vista.classList.add(nueva > previa ? "slide-der" : "slide-izq");
+    }
+  }
 }
 
 // =========================================================
@@ -3094,7 +3108,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (oscuro) document.documentElement.setAttribute("data-theme", "dark");
     else document.documentElement.removeAttribute("data-theme");
     const b = document.getElementById("btnTema");
-    if (b) { b.textContent = oscuro ? "☀️" : "🌙"; b.title = oscuro ? "Pasar a modo claro" : "Pasar a modo oscuro"; }
+    if (b) {
+      b.setAttribute("aria-checked", oscuro ? "true" : "false");
+      b.title = oscuro ? "Pasar a modo claro" : "Pasar a modo oscuro";
+      const t = b.querySelector(".tema-txt");
+      if (t) t.textContent = oscuro ? "Modo claro" : "Modo oscuro";
+    }
   };
   const iniciar = () => {
     aplicar(document.documentElement.getAttribute("data-theme") === "dark");

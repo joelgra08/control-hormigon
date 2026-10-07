@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.7.0
+Versión 2.7.1
 
 QUÉ ES
 ------
@@ -36,6 +36,12 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.7.1
+------------------------------
+- El modo oscuro ahora es un interruptor (con el texto "Modo claro"/"Modo oscuro").
+- Solo en escritorio: al cambiar de pestaña, la pantalla se desliza hacia la
+  izquierda o la derecha según la posición de la pestaña. En celular no se anima.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.7.0
 ------------------------------
