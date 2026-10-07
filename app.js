@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.6.1";
+const APP_VERSION = "2.6.2";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -283,6 +283,23 @@ function aplicarLogoObra(obraId) {
   // Sin logo cargado: Summit conserva el suyo y cualquier otra obra muestra el de DECC.
   const esSummit = obra && /summit/i.test(obra.nombre || "");
   img.src = (obra && obra.logoUrl) || (esSummit ? "favicon.svg" : "favicon-decc.png");
+  // El ícono solo es un link si la obra tiene página web cargada (Summit conserva la suya).
+  const link = img.closest("a");
+  if (link) {
+    let web = ((obra && obra.webUrl) || (esSummit ? "https://www.summit.com.uy/" : "")).trim();
+    if (web && !/^https?:\/\//i.test(web)) web = "https://" + web;
+    if (web) {
+      link.href = web;
+      link.title = obra && obra.nombre ? obra.nombre : "";
+      link.style.pointerEvents = "";
+      link.style.cursor = "";
+    } else {
+      link.removeAttribute("href");
+      link.removeAttribute("title");
+      link.style.pointerEvents = "none";
+      link.style.cursor = "default";
+    }
+  }
 }
 
 // ---------- Tiempo real: avisar cuando otra persona cambia algo ----------
@@ -465,6 +482,8 @@ function bindGlobalHandlers() {
         proximaProbeta,
         logoUrl,
       });
+      const web = (fd.get("webUrl") || "").trim();
+      if (web || obra.webUrl) obra.webUrl = web || null;
       await DB.put("obras", obra);
       await loadObras();
       await setObraActiva(obra.id);
@@ -480,6 +499,8 @@ function bindGlobalHandlers() {
         creada: todayISO(),
       };
       obra.logoUrl = await subirLogoObraSiCorresponde(obra.id, fd.get("logoUrl"));
+      const webNueva = (fd.get("webUrl") || "").trim();
+      if (webNueva) obra.webUrl = webNueva;
       await DB.put("obras", obra);
       await seedObraCatalogo(obra.id);
       await loadObras();
@@ -629,6 +650,7 @@ function openObraModal(obra) {
     form.supervisorTerreno.value = obra.supervisorTerreno || "";
     form.proximaProbeta.value = obra.proximaProbeta ?? "";
     form.logoUrl.value = obra.logoUrl || "";
+    form.webUrl.value = obra.webUrl || "";
   } else {
     form.id.value = "";
     form.logoUrl.value = "";

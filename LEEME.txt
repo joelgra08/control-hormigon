@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.6.1
+Versión 2.6.2
 
 QUÉ ES
 ------
@@ -36,6 +36,12 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.6.2
+------------------------------
+- Cada obra tiene un campo "Página web" (Editar obra). El ícono de arriba a la
+  izquierda solo es un link si la obra tiene página cargada. Requiere correr el
+  script 17_obras_web_url.sql en Supabase (Summit conserva su link).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.6.1
 ------------------------------
