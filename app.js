@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.8.1";
+const APP_VERSION = "2.9.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2187,10 +2187,17 @@ function renderTarjetaDiaria() {
 // =========================================================
 //  RESUMEN MENSUAL
 // =========================================================
+// El mortero (albañilería) se pide por el mismo circuito pero NO es hormigón:
+// queda en los remitos y en sus Excel, y no suma a los reportes mensuales.
+function esMortero(remito) {
+  const h = remito ? byId(state.catalogo.hormigones, remito.hormigonId) : null;
+  return !!h && /mortero/i.test(`${h.codigo || ""} ${h.resistencia || ""}`);
+}
+
 function lineasDelMes(yyyyMm) {
   return state.lineas.filter((l) => {
     const r = byId(state.remitos, l.remitoId);
-    return r && r.fecha && r.fecha.slice(0, 7) === yyyyMm;
+    return r && r.fecha && r.fecha.slice(0, 7) === yyyyMm && !esMortero(r);
   });
 }
 

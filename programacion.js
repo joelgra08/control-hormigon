@@ -12,7 +12,9 @@
    real la aplica el servidor (RLS de la tabla "programacion").
    =========================================================== */
 
-const PROG_ZONAS = { TORRE: "Torre", BASAMENTO: "Basamento" };
+const PROG_ZONAS = { TORRE: "Torre", BASAMENTO: "Basamento", ALBANILERIA: "Albañilería" };
+const PROG_ORDEN_ZONA = { TORRE: 0, BASAMENTO: 1, ALBANILERIA: 2 };
+const PROG_MORTERO = "Mortero 1:5 (M-7,5 - 60 kg/cm²)";
 const PROG_BOMBEADO = ["Volcado", "Bomba Lanza", "Bomba de arrastre"];
 // Tipos de hormigón del desplegable, en el orden en que se muestran.
 const PROG_HORMIGONES = [
@@ -24,7 +26,6 @@ const PROG_HORMIGONES = [
   "C35 pp14-20 A18",
   "C35 pp5-14 A15",
   "C45 pp5-14 A18",
-  "Mortero 1:5 (M-7,5 - 60 kg/cm²)",
   "A definir",
 ];
 const PROG_DIAS = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
@@ -93,7 +94,7 @@ function progOrdenar(a, b) {
   if (!!a.sinLlenados !== !!b.sinLlenados) return a.sinLlenados ? 1 : -1;
   const ha = a.hora || "99:99", hb = b.hora || "99:99";
   if (ha !== hb) return ha < hb ? -1 : 1;
-  if (a.zona !== b.zona) return a.zona === "TORRE" ? -1 : 1;
+  if (a.zona !== b.zona) return (PROG_ORDEN_ZONA[a.zona] ?? 9) - (PROG_ORDEN_ZONA[b.zona] ?? 9);
   return a.id < b.id ? -1 : 1;
 }
 
@@ -115,7 +116,7 @@ function progAgruparPorDia(filas) {
       dias.push(dia);
     }
     dia.filas.push(r);
-    if (!r.sinLlenados) dia.total += r.m3 || 0;
+    if (!r.sinLlenados && r.zona !== "ALBANILERIA") dia.total += r.m3 || 0; // el mortero no suma al total de hormigón
   });
   // Un día que tiene llenados programados no muestra el aviso de "sin
   // llenados" de la otra zona: ese aviso solo vale si el día quedó vacío.
@@ -143,8 +144,11 @@ function progForm() { return $("#formProgramacion"); }
 // al final para no perderlo al editar esa fila.
 function progRenderHormigones(valor) {
   const sel = progForm().prog_hormigon;
-  const actual = valor !== undefined ? (valor || "") : sel.value;
-  const opciones = [...PROG_HORMIGONES];
+  let actual = valor !== undefined ? (valor || "") : sel.value;
+  if (!actual && state.prog.zona === "ALBANILERIA") actual = PROG_MORTERO;
+  // Albañilería pide mortero; Torre y Basamento, hormigón.
+  const esAlb = state.prog.zona === "ALBANILERIA";
+  const opciones = esAlb ? [PROG_MORTERO, "A definir"] : [...PROG_HORMIGONES];
   if (actual && !opciones.includes(actual)) opciones.push(actual);
   sel.innerHTML = "";
   sel.appendChild(el("option", { value: "" }, "Seleccionar..."));
@@ -284,6 +288,8 @@ let progArrastrandoId = null; // id del llenado que se está arrastrando a otro 
 function progSetZona(zona) {
   state.prog.zona = zona;
   if (state.prog.editingId) progResetForm(true);
+  const selH = progForm()?.prog_hormigon;
+  if (selH) selH.value = ""; // cada zona arranca con su propia lista (mortero en Albañilería)
   renderProgramacion();
 }
 
@@ -319,7 +325,8 @@ function renderProgramacion() {
   const todas = progFilas("TODAS", state.prog.desde, state.prog.hasta).filter((r) => !r.sinLlenados);
   const suma = (z) => todas.filter((r) => r.zona === z).reduce((a, r) => a + (r.m3 || 0), 0);
   $("#progResumen").textContent = todas.length === 0 ? "" :
-    `Total del período: ${fmtM3(suma("TORRE") + suma("BASAMENTO"))} m³ — Torre ${fmtM3(suma("TORRE"))} m³ · Basamento ${fmtM3(suma("BASAMENTO"))} m³`;
+    `Total del período: ${fmtM3(suma("TORRE") + suma("BASAMENTO"))} m³ — Torre ${fmtM3(suma("TORRE"))} m³ · Basamento ${fmtM3(suma("BASAMENTO"))} m³`
+    + (suma("ALBANILERIA") ? ` · Mortero (albañilería) ${fmtM3(suma("ALBANILERIA"))} m³, aparte` : "");
 
   // Quien puede editar ve también los días hábiles del rango que todavía
   // están vacíos: son el lugar donde soltar un llenado al arrastrarlo.
@@ -577,7 +584,7 @@ function progImagenDia(fecha, idResaltar, borrada) {
   const filas = state.programacion.filter((r) => r.fecha === fecha).sort(progOrdenar);
   const conLlenados = filas.filter((r) => !r.sinLlenados);
   const visibles = conLlenados.length ? conLlenados : filas.slice(0, 1);
-  const total = conLlenados.reduce((a, r) => a + (r.m3 || 0), 0);
+  const total = conLlenados.filter((r) => r.zona !== "ALBANILERIA").reduce((a, r) => a + (r.m3 || 0), 0);
   const nombre = PROG_DIAS[progParse(fecha).getDay()];
 
   const W = 1100, ESC = 2, PAD = 10, LH = 22;
@@ -848,7 +855,7 @@ function progDiasConBomba() {
   const dias = progAgruparPorDia(progFilas("TODAS", desde, hasta));
   const res = [];
   dias.forEach((dia) => {
-    const conBomba = dia.filas.filter((r) => !r.sinLlenados && progEsBomba(r.bombeado));
+    const conBomba = dia.filas.filter((r) => !r.sinLlenados && r.zona !== "ALBANILERIA" && progEsBomba(r.bombeado));
     if (conBomba.length === 0) return;
     const horas = conBomba.map((r) => progHoraHHMM(r.hora)).filter(Boolean).sort();
     res.push({ fecha: dia.fecha, hora: horas[0] || "", detalle: conBomba });

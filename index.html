@@ -291,12 +291,13 @@
         <div class="seg" id="progZonaTabs">
           <button type="button" data-zona="TORRE">Torre</button>
           <button type="button" data-zona="BASAMENTO">Basamento</button>
+          <button type="button" data-zona="ALBANILERIA">Albañilería</button>
           <button type="button" data-zona="TODAS">Unificado</button>
         </div>
       </div>
-      <p class="hint" id="progHintGeneral" style="margin-top:10px">Cargá por separado los llenados de Torre y de Basamento. La vista "Unificado" y el PDF juntan las dos zonas por día, ordenadas por hora, con el total de m³ de cada día.</p>
+      <p class="hint" id="progHintGeneral" style="margin-top:10px">Cargá por separado los llenados de Torre, Basamento y Albañilería (mortero, que no suma al total de hormigón). La vista "Unificado" y el PDF juntan las zonas por día, ordenadas por hora, con el total de m³ de cada día.</p>
       <div id="progNoDisponible" class="empty-state" style="display:none">La programación todavía no está habilitada en el servidor: falta crear la tabla "programacion" en Supabase (script supabase/programacion.sql).</div>
-      <div id="progAvisoUnificado" class="hint" style="display:none">Para agregar o editar llenados elegí Torre o Basamento. Desde acá también podés tocar el lápiz de una fila y te lleva a su zona.</div>
+      <div id="progAvisoUnificado" class="hint" style="display:none">Para agregar o editar llenados elegí Torre, Basamento o Albañilería. Desde acá también podés tocar el lápiz de una fila y te lleva a su zona.</div>
     </div>
 
     <div class="panel solo-puede-agregar" id="progFormPanel">
@@ -351,7 +352,7 @@
         <button type="button" id="btnProg14" class="ghost">Próximos 14 días</button>
         <select id="progAvisoModo" class="solo-admin" style="width:auto" title="Cómo se arma el aviso"><option value="eml">Borrador con recuadro del día (.eml)</option><option value="mailto">Texto simple (abre el correo directo)</option></select>
         <button type="button" id="btnProgWordTransito" class="solo-admin" style="margin-left:auto" title="Word con los días que hay bomba, para mandarle a Tránsito">Word para Tránsito (días con bomba)</button>
-        <button type="button" id="btnProgExportarPDF" class="primary">Exportar PDF (Torre + Basamento)</button>
+        <button type="button" id="btnProgExportarPDF" class="primary">Exportar PDF (todas las zonas)</button>
       </div>
       <div class="hint" id="progResumen" style="margin-bottom:10px;font-weight:600"></div>
       <p class="hint" id="progAyudaArrastre" style="display:none;margin-bottom:10px">Para reprogramar un llenado, arrastrá su fila y soltala sobre el día al que pasa (con el mouse, desde la PC).</p>

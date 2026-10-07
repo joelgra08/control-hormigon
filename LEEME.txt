@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.8.1
+Versión 2.9.0
 
 QUÉ ES
 ------
@@ -36,6 +36,18 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.9.0
+------------------------------
+- Programación: tercera pestaña "Albañilería" (mortero), junto a Torre y
+  Basamento. Pide "Mortero 1:5 (M-7,5 - 60 kg/cm2)"; Torre y Basamento ya no
+  ofrecen mortero. El mortero se ve en la vista Unificado, el PDF, el aviso a
+  Cielo Azul y el recuadro del día, pero NO suma al total de hormigón del día
+  ni del período, ni entra en el Word para Tránsito.
+- Remitos: los remitos con hormigón "Mortero..." quedan en la lista y en todos
+  los Excel de remitos, pero NO suman a los reportes mensuales (Resumen mensual,
+  productividad, comparación, su PDF y su Excel).
+  Requiere correr supabase/19_programacion_zona_albanileria.sql.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.8.1
 ------------------------------
