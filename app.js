@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.6.0";
+const APP_VERSION = "2.6.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -280,7 +280,9 @@ function aplicarLogoObra(obraId) {
   const img = $("#headerLogo");
   if (!img) return;
   const obra = byId(state.obras, obraId);
-  img.src = (obra && obra.logoUrl) || "favicon.svg";
+  // Sin logo cargado: Summit conserva el suyo y cualquier otra obra muestra el de DECC.
+  const esSummit = obra && /summit/i.test(obra.nombre || "");
+  img.src = (obra && obra.logoUrl) || (esSummit ? "favicon.svg" : "favicon-decc.png");
 }
 
 // ---------- Tiempo real: avisar cuando otra persona cambia algo ----------
