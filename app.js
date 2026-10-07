@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.6.2";
+const APP_VERSION = "2.7.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -276,10 +276,18 @@ async function setObraActiva(obraId) {
 
 // Muestra el logo propio de la obra elegida arriba a la izquierda; si la
 // obra no tiene uno cargado, se usa el ícono genérico de la app.
+function aplicarPaletaObra(obra) {
+  const p = obra && obra.paleta && obra.paleta !== "verde" ? obra.paleta : "";
+  if (p) document.documentElement.setAttribute("data-paleta", p);
+  else document.documentElement.removeAttribute("data-paleta");
+  try { localStorage.setItem("paletaObra", p || "verde"); } catch (e) { /* sin storage */ }
+}
+
 function aplicarLogoObra(obraId) {
   const img = $("#headerLogo");
   if (!img) return;
   const obra = byId(state.obras, obraId);
+  aplicarPaletaObra(obra);
   // Sin logo cargado: Summit conserva el suyo y cualquier otra obra muestra el de DECC.
   const esSummit = obra && /summit/i.test(obra.nombre || "");
   img.src = (obra && obra.logoUrl) || (esSummit ? "favicon.svg" : "favicon-decc.png");
@@ -484,6 +492,8 @@ function bindGlobalHandlers() {
       });
       const web = (fd.get("webUrl") || "").trim();
       if (web || obra.webUrl) obra.webUrl = web || null;
+      const pal = fd.get("paleta") || "verde";
+      if (pal !== "verde" || obra.paleta) obra.paleta = pal;
       await DB.put("obras", obra);
       await loadObras();
       await setObraActiva(obra.id);
@@ -501,6 +511,7 @@ function bindGlobalHandlers() {
       obra.logoUrl = await subirLogoObraSiCorresponde(obra.id, fd.get("logoUrl"));
       const webNueva = (fd.get("webUrl") || "").trim();
       if (webNueva) obra.webUrl = webNueva;
+      if ((fd.get("paleta") || "verde") !== "verde") obra.paleta = fd.get("paleta");
       await DB.put("obras", obra);
       await seedObraCatalogo(obra.id);
       await loadObras();
@@ -651,6 +662,7 @@ function openObraModal(obra) {
     form.proximaProbeta.value = obra.proximaProbeta ?? "";
     form.logoUrl.value = obra.logoUrl || "";
     form.webUrl.value = obra.webUrl || "";
+    form.paleta.value = obra.paleta || "verde";
   } else {
     form.id.value = "";
     form.logoUrl.value = "";

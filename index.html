@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Sistema de Control de Hormigón</title>
 <link rel="icon" type="image/png" href="favicon-decc.png" />
-<script>try{if(localStorage.getItem("tema")==="oscuro")document.documentElement.setAttribute("data-theme","dark")}catch(e){}</script>
+<script>try{if(localStorage.getItem("tema")==="oscuro")document.documentElement.setAttribute("data-theme","dark");var p=localStorage.getItem("paletaObra");if(p&&p!=="verde")document.documentElement.setAttribute("data-paleta",p)}catch(e){}</script>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -822,6 +822,14 @@
       <div class="field" style="margin-bottom:14px">
         <label>Próxima probeta (numeración automática)</label>
         <input type="number" name="proximaProbeta" />
+      </div>
+      <div class="field" style="margin-bottom:14px">
+        <label>Paleta de colores de esta obra</label>
+        <div class="paletas">
+          <label class="paleta-op"><input type="radio" name="paleta" value="verde" checked /><span class="mu"><i style="background:#142d20"></i><i style="background:#2f6b49"></i><i style="background:#d6ebdd"></i></span>Verde</label>
+          <label class="paleta-op"><input type="radio" name="paleta" value="bordeaux" /><span class="mu"><i style="background:#3a0f1a"></i><i style="background:#7a2336"></i><i style="background:#f0d9de"></i></span>Bordeaux</label>
+          <label class="paleta-op"><input type="radio" name="paleta" value="gris" /><span class="mu"><i style="background:#22272c"></i><i style="background:#4a5560"></i><i style="background:#dde2e6"></i></span>Gris</label>
+        </div>
       </div>
       <div class="field" style="margin-bottom:14px">
         <label>Página web de la obra (opcional, es el link del ícono de arriba a la izquierda)</label>
