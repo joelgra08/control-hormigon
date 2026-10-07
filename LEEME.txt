@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.7.2
+Versión 2.7.3
 
 QUÉ ES
 ------
@@ -36,6 +36,11 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.7.3
+------------------------------
+- Administrador y asistente abren la app en la pestaña Plan (los demás roles
+  siguen abriendo en la suya).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.7.2
 ------------------------------

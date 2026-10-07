@@ -91,6 +91,13 @@ function aplicarPermisosUI() {
     if (typeof renderProgramacion === "function") renderProgramacion();
   }
 
+  // Quien puede cargar datos (administrador y asistente) abre la app en la
+  // pestaña Plan. Sin animación de deslizamiento al arrancar.
+  if (puedeAgregar() && !esProbetas() && !esProyectoEjecutivo() && !esProveedorHormigon()) {
+    $all("nav.tabs button").forEach((b) => b.classList.remove("active"));
+    showTab("plan");
+  }
+
   // Campos que solo el administrador puede editar (temperatura del día,
   // horas/feriados del mes): el resto los ve pero no los puede tocar.
   const tarjetaTemp = $("#tarjetaTemperatura");
