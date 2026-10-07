@@ -159,11 +159,20 @@ function progOnSinLlenadosChange() {
   $("#prog_notasLabel").textContent = sin ? "Motivo" : "Notas";
 }
 
+// Limpia el formulario sin tocar la casilla "Aviso a Cielo Azul" (es una
+// preferencia, no un dato del llenado: f.reset() la volvería a tildar).
+function progResetConAviso(f) {
+  const c = $("#progAvisarMail");
+  const estado = c ? c.checked : null;
+  f.reset();
+  if (c) { c.checked = estado; $("#progAvisarLabel")?.classList.toggle("on", estado); }
+}
+
 function progResetForm(mantener) {
   const f = progForm();
   if (!f) return;
   const previo = mantener ? { fecha: f.prog_fecha.value, hora: f.prog_hora.value, bombeado: f.prog_bombeado.value, hormigon: f.prog_hormigon.value } : null;
-  f.reset();
+  progResetConAviso(f);
   state.prog.editingId = null;
   f.prog_fecha.value = previo ? previo.fecha : (f.prog_fecha.value || progHoy());
   if (previo) {
@@ -186,7 +195,7 @@ function progActualizarTituloForm() {
 function progCargarEnForm(fila, comoNuevo) {
   if (state.prog.zona !== fila.zona) progSetZona(fila.zona);
   const f = progForm();
-  f.reset();
+  progResetConAviso(f);
   state.prog.editingId = comoNuevo ? null : fila.id;
   f.prog_fecha.value = fila.fecha;
   f.prog_hora.value = fila.hora || "";
