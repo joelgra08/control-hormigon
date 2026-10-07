@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.7.3
+Versión 2.8.0
 
 QUÉ ES
 ------
@@ -36,6 +36,18 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.8.0
+------------------------------
+- Basamento ahora se divide en Basamento I y Basamento II, más el Basamento
+  unificado. Resumen mensual (m3, personal, HH/m3) y su PDF muestran los tres.
+  Para usarlo: en Referencias > Cuadrillas, poné el grupo "Basamento I" o
+  "Basamento II" a cada cuadrilla; y en Referencias > Equipos, el rol del equipo.
+  El unificado suma I + II + lo que siga como "Basamento (general / histórico)".
+  Indirectos: mitad a Torre y mitad a Basamento; cada cuadrilla de Basamento
+  (I y II) recibe un cuarto.
+- Plan: zonas Torre, Basamento I y Basamento II (cada una con su cuadrilla).
+  Requiere correr supabase/18_plan_zona_basamento_ii.sql.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.7.3
 ------------------------------

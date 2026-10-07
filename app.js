@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.7.3";
+const APP_VERSION = "2.8.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -916,13 +916,17 @@ function renderEditableTable(container, { store, items, cols, deleteLabelKey, on
 const GRUPOS_CUADRILLA = [
   { value: "OTRO", label: "Otro / sin asignar" },
   { value: "TORRE", label: "Torre" },
-  { value: "BASAMENTO", label: "Basamento" },
+  { value: "BASAMENTO_I", label: "Basamento I" },
+  { value: "BASAMENTO_II", label: "Basamento II" },
+  { value: "BASAMENTO", label: "Basamento (general / histórico)" },
 ];
 
 const ROLES_EQUIPO = [
   { value: "OTRO", label: "Otro (no suma a HH/m3)" },
   { value: "TORRE", label: "Torre" },
-  { value: "BASAMENTO", label: "Basamento" },
+  { value: "BASAMENTO_I", label: "Basamento I" },
+  { value: "BASAMENTO_II", label: "Basamento II" },
+  { value: "BASAMENTO", label: "Basamento (general / histórico)" },
   { value: "HERREROS", label: "Herreros" },
   { value: "INDIRECTOS", label: "Indirectos" },
 ];
@@ -2271,23 +2275,36 @@ const fmtHH = (v) => (v === null || v === undefined ? "-" : v.toLocaleString("es
 function calcularProductividad(mes, rows) {
   const p = getPersonalMensual(mes);
   const personalTorre = personalPorEquipo("TORRE");
-  const personalBasamento = personalPorEquipo("BASAMENTO");
+  const personalBasI = personalPorEquipo("BASAMENTO_I");
+  const personalBasII = personalPorEquipo("BASAMENTO_II");
+  // Basamento unificado = Basamento I + Basamento II + el personal "general/histórico"
+  const personalBasamento = personalBasI + personalBasII + personalPorEquipo("BASAMENTO");
   const personalHerreros = personalPorEquipo("HERREROS");
   const personalIndirectos = personalPorEquipo("INDIRECTOS");
 
   const diasLaborables = diasLaborablesDelMes(mes, p.diasNoLaborables);
   const hhTorre = personalTorre * p.horasPromedioDia * diasLaborables;
   const hhBasamento = personalBasamento * p.horasPromedioDia * diasLaborables;
+  const hhBasI = personalBasI * p.horasPromedioDia * diasLaborables;
+  const hhBasII = personalBasII * p.horasPromedioDia * diasLaborables;
   const hhHerreros = personalHerreros * p.horasPromedioDia * diasLaborables;
   const hhIndirectos = personalIndirectos * p.horasPromedioDia * diasLaborables;
 
   const m3Torre = volumenPorGrupo(rows, "TORRE");
-  const m3Basamento = volumenPorGrupo(rows, "BASAMENTO");
+  const m3BasI = volumenPorGrupo(rows, "BASAMENTO_I");
+  const m3BasII = volumenPorGrupo(rows, "BASAMENTO_II");
+  const m3Basamento = m3BasI + m3BasII + volumenPorGrupo(rows, "BASAMENTO"); // unificado
   const m3Directo = m3Torre + m3Basamento;
 
   return {
     p, personalTorre, personalBasamento, personalHerreros, personalIndirectos,
+    personalBasI, personalBasII, m3BasI, m3BasII,
     diasLaborables, m3Torre, m3Basamento, m3Directo,
+    // Indirectos: la mitad a Torre y la mitad a Basamento; dentro de Basamento, un cuarto a cada cuadrilla (I y II)
+    hhm3BasIDirectos: m3BasI ? hhBasI / m3BasI : null,
+    hhm3BasIConIndirectos: m3BasI ? (hhBasI + hhIndirectos / 4) / m3BasI : null,
+    hhm3BasIIDirectos: m3BasII ? hhBasII / m3BasII : null,
+    hhm3BasIIConIndirectos: m3BasII ? (hhBasII + hhIndirectos / 4) / m3BasII : null,
     hhm3GeneralDirectos: m3Directo ? (hhTorre + hhBasamento + hhHerreros) / m3Directo : null,
     hhm3GeneralConIndirectos: m3Directo ? (hhTorre + hhBasamento + hhHerreros + hhIndirectos) / m3Directo : null,
     hhm3TorreDirectos: m3Torre ? hhTorre / m3Torre : null,
@@ -2305,12 +2322,16 @@ function renderProductividadMensual(rows) {
   const prod = calcularProductividad(state.resumenMes, rows);
   $("#pm_cant_torre").textContent = prod.personalTorre;
   $("#pm_cant_basamento").textContent = prod.personalBasamento;
+  $("#pm_cant_basI").textContent = prod.personalBasI;
+  $("#pm_cant_basII").textContent = prod.personalBasII;
   $("#pm_cant_herreros").textContent = prod.personalHerreros;
   $("#pm_cant_indirectos").textContent = prod.personalIndirectos;
 
   $("#pm_diasLaborables").textContent = prod.diasLaborables;
   $("#pm_m3Torre").textContent = fmtM3(prod.m3Torre);
   $("#pm_m3Basamento").textContent = fmtM3(prod.m3Basamento);
+  $("#pm_m3BasI").textContent = fmtM3(prod.m3BasI);
+  $("#pm_m3BasII").textContent = fmtM3(prod.m3BasII);
 
   $("#hh_general_directos").textContent = fmtHH(prod.hhm3GeneralDirectos);
   $("#hh_general_indirectos").textContent = fmtHH(prod.hhm3GeneralConIndirectos);
@@ -2318,6 +2339,10 @@ function renderProductividadMensual(rows) {
   $("#hh_torre_indirectos").textContent = fmtHH(prod.hhm3TorreConIndirectos);
   $("#hh_basamento_directos").textContent = fmtHH(prod.hhm3BasamentoDirectos);
   $("#hh_basamento_indirectos").textContent = fmtHH(prod.hhm3BasamentoConIndirectos);
+  $("#hh_basI_directos").textContent = fmtHH(prod.hhm3BasIDirectos);
+  $("#hh_basI_indirectos").textContent = fmtHH(prod.hhm3BasIConIndirectos);
+  $("#hh_basII_directos").textContent = fmtHH(prod.hhm3BasIIDirectos);
+  $("#hh_basII_indirectos").textContent = fmtHH(prod.hhm3BasIIConIndirectos);
 }
 
 // ---------- Comparación con el mes anterior ----------
@@ -2812,11 +2837,14 @@ function exportarResumenMensualPDF() {
     margin: { left: margin, right: margin },
     columnStyles: { 0: { fontStyle: "bold", cellWidth: 95 } },
     body: [
-      ["Personal Torre / Basamento / Herreros / Indirectos", `${prod.personalTorre} / ${prod.personalBasamento} / ${prod.personalHerreros} / ${prod.personalIndirectos}`],
+      ["Personal Torre / Basamento I / Basamento II / Basamento unificado / Herreros / Indirectos", `${prod.personalTorre} / ${prod.personalBasI} / ${prod.personalBasII} / ${prod.personalBasamento} / ${prod.personalHerreros} / ${prod.personalIndirectos}`],
+      ["M3 Torre / Basamento I / Basamento II / Basamento unificado", `${fmtM3(prod.m3Torre)} / ${fmtM3(prod.m3BasI)} / ${fmtM3(prod.m3BasII)} / ${fmtM3(prod.m3Basamento)}`],
       ["Días laborables del mes", String(prod.diasLaborables)],
       ["HH/m3 general — directos / con indirectos", `${fmtHH(prod.hhm3GeneralDirectos)} / ${fmtHH(prod.hhm3GeneralConIndirectos)}`],
       ["HH/m3 Torre — directos / con indirectos", `${fmtHH(prod.hhm3TorreDirectos)} / ${fmtHH(prod.hhm3TorreConIndirectos)}`],
-      ["HH/m3 Basamento — directos / con indirectos", `${fmtHH(prod.hhm3BasamentoDirectos)} / ${fmtHH(prod.hhm3BasamentoConIndirectos)}`],
+      ["HH/m3 Basamento I — directos / con indirectos", `${fmtHH(prod.hhm3BasIDirectos)} / ${fmtHH(prod.hhm3BasIConIndirectos)}`],
+      ["HH/m3 Basamento II — directos / con indirectos", `${fmtHH(prod.hhm3BasIIDirectos)} / ${fmtHH(prod.hhm3BasIIConIndirectos)}`],
+      ["HH/m3 Basamento unificado — directos / con indirectos", `${fmtHH(prod.hhm3BasamentoDirectos)} / ${fmtHH(prod.hhm3BasamentoConIndirectos)}`],
     ],
   });
   y = doc.lastAutoTable.finalY + 8;

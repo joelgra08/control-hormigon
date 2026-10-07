@@ -21,7 +21,7 @@
    - Antes de guardar hay una vista previa donde se puede corregir.
    =========================================================== */
 
-const PLAN_ZONAS = { TORRE: "Torre", BASAMENTO: "Basamento" };
+const PLAN_ZONAS = { TORRE: "Torre", BASAMENTO: "Basamento I", BASAMENTO_II: "Basamento II" };
 // Hormigón mínimo habitual por código de elemento (se puede cambiar en cada fila).
 const PLAN_HORMIGON_POR_ELEMENTO = { P: "C45", L: "C35", VL: "C35", CT: "C30", VR: "C30", CP: "C30", TD: "C30" };
 const PLAN_EPS = 0.0005;
@@ -172,7 +172,8 @@ function planCargarSelects() {
 
   selectOptions($("#planProveedor"), state.catalogo.proveedores, (p) => p.nombre, {});
   const cuadTorre = state.catalogo.cuadrillas.filter((c) => c.grupo === "TORRE");
-  const cuadBas = state.catalogo.cuadrillas.filter((c) => c.grupo === "BASAMENTO");
+  const cuadBas = state.catalogo.cuadrillas.filter((c) => c.grupo === "BASAMENTO_I" || c.grupo === "BASAMENTO");
+  const cuadBas2 = state.catalogo.cuadrillas.filter((c) => c.grupo === "BASAMENTO_II");
   const llenarCuad = (sel, lista, clave) => {
     const prev = sel.value;
     sel.innerHTML = "";
@@ -186,6 +187,7 @@ function planCargarSelects() {
   };
   llenarCuad($("#planCuadTorre"), cuadTorre, "planCuadTorre");
   llenarCuad($("#planCuadBasamento"), cuadBas, "planCuadBasamento");
+  llenarCuad($("#planCuadBasamento2"), cuadBas2, "planCuadBasamento2");
 }
 
 function planAplicarHormigonDefault() {
@@ -373,11 +375,11 @@ function planDescargarModelo() {
     ["Torre", "P", "H08", "+12,68", 40, 100, 310, "", "C45", "Sí", ""],
     ["Torre", "P", "H09", "+12,68", "", "", "", 2.08, "C45", "Sí", ""],
     ["Torre", "VR", "R101", "+12,00", 20, 50, 400, "", "C30", "No", ""],
-    ["Basamento", "L", "Losa sobre N1", "+9,30", "", "", "", 38.5, "C35", "Sí", ""],
+    ["Basamento I", "L", "Losa sobre N1", "+9,30", "", "", "", 38.5, "C35", "Sí", ""],
   ];
   const ayuda = [
     ["Cómo completar"],
-    ["Zona: Torre o Basamento."],
+    ["Zona: Torre, Basamento I o Basamento II (si escribís solo \"Basamento\" se toma como Basamento I)."],
     ["Elemento: código del catálogo (P, L, VL, VR, CT, CP, TD, HL...) o su nombre."],
     ["Nomenclatura: como la usás hoy (H08, Losa N106 S1, etc.)."],
     ["Cota de arranque: con o sin signo, coma o punto (+12,68)."],
@@ -445,8 +447,11 @@ function planLeerMatriz(matriz) {
     if ((m3 === null || m3 <= 0) && areaM2 > 0 && alturaCm > 0) m3 = planR2(areaM2 * (alturaCm / 100));
     if (m3 === null || m3 <= 0) { errores.push(`Fila ${n}: faltan los m³ (o Largo, Ancho y Altura).`); continue; }
     const z = planNorm(get("zona"));
-    const zona = z.startsWith("torre") ? "TORRE" : z.startsWith("basam") ? "BASAMENTO" : null;
-    if (!zona) { errores.push(`Fila ${n}: la zona tiene que ser Torre o Basamento.`); continue; }
+    // "Basamento" solo = Basamento I; también acepta "Basamento 2", "Basamento II", "B2", etc.
+    const zona = z.startsWith("torre") ? "TORRE"
+      : /^basam\w*\s*(ii|2)\b/.test(z) ? "BASAMENTO_II"
+      : z.startsWith("basam") ? "BASAMENTO" : null;
+    if (!zona) { errores.push(`Fila ${n}: la zona tiene que ser Torre, Basamento I o Basamento II.`); continue; }
     let horm = String(get("horm") || "").trim().toUpperCase();
     if (!horm) horm = PLAN_HORMIGON_POR_ELEMENTO[(el_.codigo || "").toUpperCase()] || "";
     if (!horm) { errores.push(`Fila ${n}: falta el hormigón mínimo de ${el_.codigo}.`); continue; }
@@ -694,13 +699,14 @@ async function planGuardarRemitos() {
   const desp = planElementoDesperdicio();
   if (!desp) return toast('Falta el elemento "Desperdicio" en Referencias', "error");
   const plan = planFilasDelDia();
-  const cuad = { TORRE: $("#planCuadTorre").value, BASAMENTO: $("#planCuadBasamento").value };
+  const cuad = { TORRE: $("#planCuadTorre").value, BASAMENTO: $("#planCuadBasamento").value, BASAMENTO_II: $("#planCuadBasamento2").value };
   const zonasUsadas = new Set();
   pv.remitos.forEach((r) => r.lineas.forEach((l) => { const p = plan.find((x) => x.id === l.planId); if (p) zonasUsadas.add(p.zona); }));
   for (const z of zonasUsadas) if (!cuad[z]) return toast(`Elegí la cuadrilla de ${PLAN_ZONAS[z]}`, "error");
   try {
     localStorage.setItem("planCuadTorre", cuad.TORRE || "");
     localStorage.setItem("planCuadBasamento", cuad.BASAMENTO || "");
+    localStorage.setItem("planCuadBasamento2", cuad.BASAMENTO_II || "");
   } catch (e) { /* sin storage */ }
 
   const duplicados = pv.remitos.filter((r) => planDuplicadoExistente(r.nro, proveedorId)).map((r) => r.nro);

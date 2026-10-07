@@ -438,7 +438,7 @@
 
     <div class="panel">
       <h2>Productividad (HH / m³)</h2>
-      <p class="hint">La cantidad de personal por equipo se calcula sola a partir de la pestaña "Personal". La cuadrilla de un elemento define si su volumen cuenta como "Torre" o "Basamento" (se configura en Referencias → Cuadrillas).</p>
+      <p class="hint">La cantidad de personal por equipo se calcula sola a partir de la pestaña "Personal". La cuadrilla de un elemento define si su volumen cuenta como "Torre", "Basamento I" o "Basamento II" (el unificado suma los dos) (se configura en Referencias → Cuadrillas).</p>
       <form id="formPersonalMensual" class="form-grid wide">
         <div class="field"><label>Horas promedio / día</label><input type="number" step="0.1" id="pm_horas" /></div>
         <div class="field"><label>Feriados / días de paro</label><input type="number" id="pm_feriados" min="0" /></div>
@@ -446,7 +446,9 @@
 
       <div class="kpi-grid" style="margin-top:14px">
         <div class="kpi"><div class="value" id="pm_cant_torre">-</div><div class="label">Personal Torre</div></div>
-        <div class="kpi"><div class="value" id="pm_cant_basamento">-</div><div class="label">Personal Basamento</div></div>
+        <div class="kpi"><div class="value" id="pm_cant_basI">-</div><div class="label">Personal Basamento I</div></div>
+        <div class="kpi"><div class="value" id="pm_cant_basII">-</div><div class="label">Personal Basamento II</div></div>
+        <div class="kpi"><div class="value" id="pm_cant_basamento">-</div><div class="label">Personal Basamento unificado</div></div>
         <div class="kpi"><div class="value" id="pm_cant_herreros">-</div><div class="label">Herreros</div></div>
         <div class="kpi"><div class="value" id="pm_cant_indirectos">-</div><div class="label">Indirectos</div></div>
       </div>
@@ -454,7 +456,9 @@
       <div class="kpi-grid" style="margin-top:10px">
         <div class="kpi"><div class="value" id="pm_diasLaborables">-</div><div class="label">Días laborables del mes</div></div>
         <div class="kpi"><div class="value" id="pm_m3Torre">-</div><div class="label">M³ Torre</div></div>
-        <div class="kpi"><div class="value" id="pm_m3Basamento">-</div><div class="label">M³ Basamento</div></div>
+        <div class="kpi"><div class="value" id="pm_m3BasI">-</div><div class="label">M³ Basamento I</div></div>
+        <div class="kpi"><div class="value" id="pm_m3BasII">-</div><div class="label">M³ Basamento II</div></div>
+        <div class="kpi"><div class="value" id="pm_m3Basamento">-</div><div class="label">M³ Basamento unificado</div></div>
       </div>
 
       <h3>HH/m³ — general de la obra (carpinteros + herreros)</h3>
@@ -467,8 +471,12 @@
       <div class="kpi-grid">
         <div class="kpi"><div class="value" id="hh_torre_directos">-</div><div class="label">Torre — directos</div></div>
         <div class="kpi"><div class="value" id="hh_torre_indirectos">-</div><div class="label">Torre — con indirectos/2</div></div>
-        <div class="kpi"><div class="value" id="hh_basamento_directos">-</div><div class="label">Basamento — directos</div></div>
-        <div class="kpi"><div class="value" id="hh_basamento_indirectos">-</div><div class="label">Basamento — con indirectos/2</div></div>
+        <div class="kpi"><div class="value" id="hh_basI_directos">-</div><div class="label">Basamento I — directos</div></div>
+        <div class="kpi"><div class="value" id="hh_basI_indirectos">-</div><div class="label">Basamento I — con indirectos/4</div></div>
+        <div class="kpi"><div class="value" id="hh_basII_directos">-</div><div class="label">Basamento II — directos</div></div>
+        <div class="kpi"><div class="value" id="hh_basII_indirectos">-</div><div class="label">Basamento II — con indirectos/4</div></div>
+        <div class="kpi"><div class="value" id="hh_basamento_directos">-</div><div class="label">Basamento unificado — directos</div></div>
+        <div class="kpi"><div class="value" id="hh_basamento_indirectos">-</div><div class="label">Basamento unificado — con indirectos/2</div></div>
       </div>
     </div>
 
@@ -541,7 +549,7 @@
       <h3 style="margin-top:0">Agregar al plan</h3>
       <div class="form-grid wide">
         <div class="field"><label>Zona *</label>
-          <select id="plan_zona"><option value="TORRE">Torre</option><option value="BASAMENTO">Basamento</option></select></div>
+          <select id="plan_zona"><option value="TORRE">Torre</option><option value="BASAMENTO">Basamento I</option><option value="BASAMENTO_II">Basamento II</option></select></div>
         <div class="field"><label>Elemento *</label><select id="plan_elemento"></select></div>
         <div class="field"><label>Nomenclatura</label><input type="text" id="plan_nomenclatura" placeholder="Ej: H08" /></div>
         <div class="field"><label>Cota de arranque</label><input type="text" id="plan_cota" inputmode="decimal" placeholder="Ej: +12,68" /></div>
@@ -578,7 +586,8 @@
       <div class="row" style="gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <div class="field"><label>Proveedor</label><select id="planProveedor"></select></div>
         <div class="field"><label>Cuadrilla Torre</label><select id="planCuadTorre"></select></div>
-        <div class="field"><label>Cuadrilla Basamento</label><select id="planCuadBasamento"></select></div>
+        <div class="field"><label>Cuadrilla Basamento I</label><select id="planCuadBasamento"></select></div>
+        <div class="field"><label>Cuadrilla Basamento II</label><select id="planCuadBasamento2"></select></div>
       </div>
       <div class="table-scroll" style="max-height:none">
         <table id="tablaPlanRemitos">
