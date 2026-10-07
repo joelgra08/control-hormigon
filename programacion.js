@@ -264,7 +264,7 @@ async function progBorrar(fila) {
 
 function progPasarAlSiguiente(fila) { return progMoverA(fila, progSiguienteHabil(fila.fecha)); }
 
-// Cambia de día un llenado (botón ⏭ o arrastrando la fila a otro día).
+// Cambia de día un llenado (botón » o arrastrando la fila a otro día).
 async function progMoverA(fila, fecha) {
   if (!progPuedeEditar() || !fecha || fecha === fila.fecha) return;
   const nueva = { ...fila, fecha };
@@ -422,7 +422,7 @@ function renderProgramacion() {
         };
         boton("✎", "Editar", () => progCargarEnForm(r, false));
         if (!r.sinLlenados) boton("⧉", "Duplicar (carga los mismos datos como un llenado nuevo)", () => progCargarEnForm(r, true));
-        boton("⏭", "Pasar al día hábil siguiente", () => progPasarAlSiguiente(r));
+        boton("»", "Pasar al día hábil siguiente", () => progPasarAlSiguiente(r));
         boton("✕", "Borrar", () => progBorrar(r), " danger");
         tr.appendChild(td);
       }

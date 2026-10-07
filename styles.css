@@ -742,3 +742,7 @@ button.tema-switch:focus-visible { outline: 2px solid #fff; outline-offset: 2px;
 .paleta-op:has(input:checked) { border-color: var(--primary); font-weight: 600; }
 .paleta-op .mu { display: inline-flex; border-radius: 4px; overflow: hidden; border: 1px solid rgba(0,0,0,.15); }
 .paleta-op .mu i { display: block; width: 14px; height: 18px; }
+
+/* Botones "Buscar" junto a campos con etiqueta: alineados abajo y de la misma altura que los campos */
+.row:has(> .field > label) { align-items: flex-end; }
+.field > button { min-height: 34px; }

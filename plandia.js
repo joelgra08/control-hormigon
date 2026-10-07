@@ -343,7 +343,7 @@ function renderPlanDia() {
     tr.appendChild(el("td", { style: "text-align:right" }, fmtM3(r.m3)));
     tr.appendChild(el("td", {}, r.hormigon));
     tr.appendChild(el("td", {}, r.bombeado ? "Bomba" : "-"));
-    tr.appendChild(el("td", { style: "white-space:normal" }, r.observaciones || (r.cargado ? "✔ remitos cargados" : "")));
+    tr.appendChild(el("td", { style: "white-space:normal" }, r.observaciones || (r.cargado ? "✓ remitos cargados" : "")));
     const acc = el("td", { style: "white-space:nowrap" });
     [["↑", "Subir", () => planMover(r, -1)], ["↓", "Bajar", () => planMover(r, 1)], ["✎", "Editar", () => planEditarFila(r)], ["✕", "Sacar", () => planBorrarFila(r)]]
       .forEach(([t, title, fn]) => {
@@ -624,7 +624,7 @@ function renderPlanPreview() {
     caja.appendChild(el("div", { class: "plan-remito-cab" }, [
       el("b", {}, `Remito ${r.nro}`),
       ` · ${r.hormigon} · ${fmtM3(r.m3)} m³` + (r.horaDescarga || r.horaAObra ? ` · ${r.horaDescarga || r.horaAObra} hs` : ""),
-      el("span", { style: "margin-left:auto;font-weight:600;color:" + (ok ? "#2f6b49" : "#b3413a") }, ok ? "✔ suma bien" : `⚠ suma ${fmtM3(suma)} de ${fmtM3(r.m3)}`),
+      el("span", { style: "margin-left:auto;font-weight:600;color:" + (ok ? "#2f6b49" : "#b3413a") }, ok ? "✓ suma bien" : `Suma ${fmtM3(suma)} de ${fmtM3(r.m3)}`),
     ]));
     r.lineas.forEach((l, li) => {
       const fila = el("div", { class: "plan-linea" });
@@ -661,7 +661,7 @@ function renderPlanPreview() {
   filasPlan.forEach((p) => {
     const a = asig[p.id] || 0;
     const dif = planR2(p.m3 - a);
-    const estado = Math.abs(dif) < 0.005 ? "✔" : dif > 0 ? `⚠ faltan ${fmtM3(dif)} m³` : `+${fmtM3(-dif)} m³ de más`;
+    const estado = Math.abs(dif) < 0.005 ? "✓" : dif > 0 ? `Faltan ${fmtM3(dif)} m³` : `+${fmtM3(-dif)} m³ de más`;
     if (dif > 0.005) hayFalta = true;
     tb.appendChild(el("tr", {}, [
       el("td", {}, `${PLAN_ZONAS[p.zona] || ""} · ${planNombreFila(p)}`),

@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.7.1";
+const APP_VERSION = "2.7.2";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -1293,7 +1293,7 @@ function renderFacturasHierroForm() {
   }
   state.facturasHierroForm.forEach((f, idx) => {
     const fila = el("div", { class: "row", style: "align-items:center;gap:6px;margin-top:4px" });
-    fila.appendChild(document.createTextNode(`📎 ${f.nombre}`));
+    fila.appendChild(document.createTextNode(f.nombre));
     const btnVer = el("button", { type: "button", class: "ghost" }, "Ver");
     btnVer.addEventListener("click", () => abrirFactura(f.path));
     const btnQuitar = el("button", { type: "button", class: "ghost danger" }, "✕");
@@ -1481,7 +1481,7 @@ function renderHierro() {
     const facturas = facturasDePedido(p);
     if (facturas.length > 0) {
       facturas.forEach((f, idx) => {
-        const btnVer = el("button", { class: "ghost", title: f.nombre, style: "margin:2px" }, facturas.length > 1 ? `📎 ${idx + 1}` : "📎 Ver");
+        const btnVer = el("button", { class: "ghost", title: f.nombre, style: "margin:2px" }, facturas.length > 1 ? `Factura ${idx + 1}` : "Ver factura");
         btnVer.addEventListener("click", () => abrirFactura(f.path));
         tdFactura.appendChild(btnVer);
       });
@@ -1491,7 +1491,7 @@ function renderHierro() {
     tr.appendChild(tdFactura);
     const tdAcc = el("td");
     if (puedeAgregar()) {
-      const btnWa = el("button", { class: "ghost", title: "Armar mensaje de WhatsApp" }, "💬");
+      const btnWa = el("button", { class: "ghost", title: "Armar mensaje de WhatsApp" }, "WhatsApp");
       btnWa.addEventListener("click", () => abrirWhatsappHierro(p.id));
       tdAcc.appendChild(btnWa);
     }
