@@ -623,3 +623,55 @@ tr.prog-arrastrando { opacity: 0.4; }
 .plan-linea select { flex: 1 1 260px; min-width: 0; }
 .plan-resumen { border-collapse: collapse; width: 100%; max-width: 640px; font-size: 14px; }
 .plan-resumen th, .plan-resumen td { border-bottom: 1px solid #dfe7e2; padding: 5px 8px; text-align: left; }
+
+/* ---------- Modo oscuro (solo en pantalla; al imprimir/PDF siempre claro) ---------- */
+#btnTema { padding: 4px 9px; line-height: 1; font-size: 15px; }
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111715;
+    --panel: #1a2320;
+    --border: #2d3b35;
+    --text: #e3ece7;
+    --muted: #94a89d;
+    --primary: #3f9163;
+    --primary-dark: #2f7a50;
+    --danger: #e0716a;
+    --ok: #5fbf8a;
+    --warn: #d9a04e;
+  }
+  [data-theme="dark"] header.topbar,
+  [data-theme="dark"] .toast { background: #0b1812; }
+  [data-theme="dark"] nav.tabs { background: #0f2218; }
+  [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea,
+  [data-theme="dark"] button, [data-theme="dark"] .seg button,
+  [data-theme="dark"] .modal, [data-theme="dark"] td.prog-acciones,
+  [data-theme="dark"] .plan-remito { background: var(--panel); color: var(--text); }
+  [data-theme="dark"] button.primary,
+  [data-theme="dark"] .seg button.active { background: var(--primary); color: #fff; }
+  [data-theme="dark"] button.primary:hover { background: var(--primary-dark); }
+  [data-theme="dark"] button.ghost-dark { background: transparent; color: #d7ead9; }
+  [data-theme="dark"] button.danger { color: var(--danger); border-color: #6b3531; }
+  [data-theme="dark"] button.danger:hover { background: #2c1a19; }
+  [data-theme="dark"] button.ghost:hover,
+  [data-theme="dark"] button:hover:not(.primary):not(.ghost-dark) { background: #232f2a; }
+  [data-theme="dark"] input[readonly] { background: #151d1a; }
+  [data-theme="dark"] .kpi, [data-theme="dark"] thead th, [data-theme="dark"] .tag-item,
+  [data-theme="dark"] .badge.no { background: #212c27; }
+  [data-theme="dark"] tbody td { border-bottom-color: #26332d; }
+  [data-theme="dark"] tbody tr:hover { background: #202b26; }
+  [data-theme="dark"] .badge.si { background: #17382a; color: #7fd6a3; }
+  [data-theme="dark"] .badge.desperdicio { background: #3b1f1e; color: #f0a19b; }
+  [data-theme="dark"] .prog-dia thead th { background: #1f3a2c; }
+  [data-theme="dark"] .prog-sin td, [data-theme="dark"] .plan-remito-mal { background: #2c1a19; }
+  [data-theme="dark"] .plan-remito, [data-theme="dark"] .plan-remito-mal { border-color: #3a4a42; }
+  [data-theme="dark"] .plan-remito-mal { border-color: #7a3b37; }
+  [data-theme="dark"] .prog-dia-vacio .prog-dia-head { background: #1d2723; }
+  [data-theme="dark"] .prog-bomba { color: #1c2620; }
+  [data-theme="dark"] .plan-resumen th, [data-theme="dark"] .plan-resumen td { border-bottom-color: #2d3b35; }
+  [data-theme="dark"] #obraLogoPreview { background: #e3ece7 !important; }
+  [data-theme="dark"] .cards-movil tbody tr:hover { background: var(--panel); }
+}
+@media screen and (max-width: 720px) {
+  [data-theme="dark"] .cards-movil tbody tr, [data-theme="dark"] .prog-dia tbody tr { background: var(--panel); }
+}

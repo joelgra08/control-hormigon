@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.5.2
+Versión 2.6.0
 
 QUÉ ES
 ------
@@ -36,6 +36,12 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.6.0
+------------------------------
+- Modo oscuro: botón 🌙/☀️ arriba a la derecha (junto a "Salir"). Se recuerda en
+  cada dispositivo. Los PDF, la tarjeta impresa y los .eml siguen siendo claros.
+- Pestaña "Plan" (antes "Plan del día") ahora es la primera.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.5.2
 ------------------------------

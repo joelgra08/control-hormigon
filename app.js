@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.5.3";
+const APP_VERSION = "2.6.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -3051,3 +3051,24 @@ document.addEventListener("DOMContentLoaded", () => {
   iniciarEtiquetadoDeTablas();
   init();
 });
+
+// ---------- Modo oscuro / claro ----------
+(function iniciarTema() {
+  const aplicar = (oscuro) => {
+    if (oscuro) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    const b = document.getElementById("btnTema");
+    if (b) { b.textContent = oscuro ? "☀️" : "🌙"; b.title = oscuro ? "Pasar a modo claro" : "Pasar a modo oscuro"; }
+  };
+  const iniciar = () => {
+    aplicar(document.documentElement.getAttribute("data-theme") === "dark");
+    const b = document.getElementById("btnTema");
+    if (!b) return;
+    b.addEventListener("click", () => {
+      const oscuro = document.documentElement.getAttribute("data-theme") !== "dark";
+      aplicar(oscuro);
+      try { localStorage.setItem("tema", oscuro ? "oscuro" : "claro"); } catch (e) { /* sin storage */ }
+    });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar); else iniciar();
+})();
