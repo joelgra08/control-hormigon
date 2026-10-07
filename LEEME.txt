@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.9.0
+Versión 2.9.1
 
 QUÉ ES
 ------
@@ -36,6 +36,11 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.9.1
+------------------------------
+- Corregido: el Proveedor de hormigón veía la pestaña Albañilería. Ahora solo ve
+  Unificado (se ocultan todas las zonas menos esa).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.9.0
 ------------------------------

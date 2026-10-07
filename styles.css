@@ -460,8 +460,7 @@ body[data-rol="proyecto_ejecutivo"] nav.tabs button:not([data-tab="tarjeta"]):no
 body[data-rol="proveedor_hormigon"] nav.tabs button:not([data-tab="programacion"]) {
   display: none !important;
 }
-body[data-rol="proveedor_hormigon"] #progZonaTabs button[data-zona="TORRE"],
-body[data-rol="proveedor_hormigon"] #progZonaTabs button[data-zona="BASAMENTO"],
+body[data-rol="proveedor_hormigon"] #progZonaTabs button:not([data-zona="TODAS"]),
 body[data-rol="proveedor_hormigon"] #progDesdeField,
 body[data-rol="proveedor_hormigon"] #progHastaField,
 body[data-rol="proveedor_hormigon"] #btnProg14,
