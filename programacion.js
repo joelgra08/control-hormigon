@@ -24,6 +24,7 @@ const PROG_HORMIGONES = [
   "C35 pp14-20 A18",
   "C35 pp5-14 A15",
   "C45 pp5-14 A18",
+  "Mortero 1:5 (M-7,5 - 60 kg/cm²)",
   "A definir",
 ];
 const PROG_DIAS = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
