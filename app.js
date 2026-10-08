@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.9.1";
+const APP_VERSION = "2.10.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2201,10 +2201,18 @@ function lineasDelMes(yyyyMm) {
   });
 }
 
+// Ordena los tipos de hormigón por resistencia (C15, C20, C25...); los que no
+// tienen número (ej. "Sin tipo") van al final.
+function ordenarTiposHormigon(obj) {
+  const num = (k) => { const m = /(\d+)/.exec(k); return m ? parseInt(m[1], 10) : Infinity; };
+  return Object.entries(obj).sort((a, b) => num(a[0]) - num(b[0]) || a[0].localeCompare(b[0]));
+}
+
 function calcularResumenMensual(rows) {
   const k = calcularKPIs(rows);
   const porElemento = {};
   const porProveedor = {};
+  const porHormigon = {};
   const diasConHormigon = new Set();
   const remitosDelMes = new Set();
 
@@ -2218,6 +2226,10 @@ function calcularResumenMensual(rows) {
     const pkey = prov ? prov.nombre : "Sin proveedor";
     porProveedor[pkey] = (porProveedor[pkey] || 0) + (l.volumen || 0);
 
+    const horm = byId(state.catalogo.hormigones, r.hormigonId);
+    const hkey = horm ? horm.codigo : "Sin tipo";
+    porHormigon[hkey] = (porHormigon[hkey] || 0) + (l.volumen || 0);
+
     if (r.fecha) diasConHormigon.add(r.fecha);
     remitosDelMes.add(r.id);
   });
@@ -2226,6 +2238,7 @@ function calcularResumenMensual(rows) {
     ...k,
     porElemento,
     porProveedor,
+    porHormigon,
     diasConHormigon: diasConHormigon.size,
     cantRemitos: remitosDelMes.size,
     promedioPorDia: diasConHormigon.size ? k.totalM3 / diasConHormigon.size : 0,
@@ -2424,6 +2437,19 @@ function renderResumenMensual() {
   $("#kpiResumenPagaM2Card").style.display = tienePagaM2 ? "" : "none";
   if (tienePagaM2) {
     $("#kpiResumenPagaM2").textContent = `${fmtM3(r.m3PagaPorM2)} m³ (${fmtM3(r.m2PagaPorM2)} m²)`;
+  }
+
+  // Una línea con los m³ del mes por tipo de hormigón (C20, C30, ...), de menor a mayor resistencia
+  const lineaHorm = $("#resumenPorHormigon");
+  if (lineaHorm) {
+    lineaHorm.innerHTML = "";
+    const tipos = ordenarTiposHormigon(r.porHormigon);
+    if (tipos.length) {
+      lineaHorm.appendChild(el("strong", {}, "Por tipo de hormigón: "));
+      tipos.forEach(([cod, v], i) => {
+        lineaHorm.appendChild(document.createTextNode((i ? "  ·  " : "") + `${cod} ${fmtM3(v)} m³`));
+      });
+    }
   }
 
   const rend = (contId, obj) => {
@@ -2829,6 +2855,13 @@ function exportarResumenMensualPDF() {
   const bodyProv = Object.entries(r.porProveedor).sort((a, b) => b[1] - a[1]).map(([kk, v]) => [kk, fmtM3(v) + " m3", fmtPct(v / totalProv)]);
   doc.setFont(undefined, "bold");
   doc.setFontSize(11);
+  const bodyHorm = ordenarTiposHormigon(r.porHormigon).map(([kk, v]) => [kk, fmtM3(v) + " m3"]);
+  doc.text("M3 por tipo de hormigón", margin, y);
+  doc.autoTable({ startY: y + 3, head: [["Tipo de hormigón", "M3"]], body: bodyHorm, theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin } });
+  y = doc.lastAutoTable.finalY + 8;
+  if (y > 230) { doc.addPage(); y = margin; }
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(11);
   doc.text("M3 por proveedor", margin, y);
   doc.autoTable({ startY: y + 3, head: [["Proveedor", "M3", "%"]], body: bodyProv, theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin } });
   y = doc.lastAutoTable.finalY + 8;
@@ -2930,6 +2963,9 @@ function exportarResumenMensualExcel() {
     [],
     ["M3 por tipo de elemento"],
     ...Object.entries(r.porElemento).sort((a, b) => b[1] - a[1]),
+    [],
+    ["M3 por tipo de hormigón"],
+    ...ordenarTiposHormigon(r.porHormigon),
     [],
     ["M3 por proveedor"],
     ...Object.entries(r.porProveedor).sort((a, b) => b[1] - a[1]),
