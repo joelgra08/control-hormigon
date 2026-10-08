@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.10.1";
+const APP_VERSION = "2.10.2";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2463,23 +2463,10 @@ function renderResumenMensual() {
   $("#ac_bas").textContent = fmtM3(ac.basamento);
   $("#ac_total").textContent = fmtM3(ac.total);
 
-  // Una línea con los m³ del mes por tipo de hormigón (C20, C30, ...), de menor a mayor resistencia
-  const lineaHorm = $("#resumenPorHormigon");
-  if (lineaHorm) {
-    lineaHorm.innerHTML = "";
-    const tipos = ordenarTiposHormigon(r.porHormigon);
-    if (tipos.length) {
-      lineaHorm.appendChild(el("strong", {}, "Por tipo de hormigón: "));
-      tipos.forEach(([cod, v], i) => {
-        lineaHorm.appendChild(document.createTextNode((i ? "  ·  " : "") + `${cod} ${fmtM3(v)} m³`));
-      });
-    }
-  }
-
-  const rend = (contId, obj) => {
+  const rend = (contId, obj, mantenerOrden) => {
     const cont = $(contId);
     cont.innerHTML = "";
-    const entries = Object.entries(obj).sort((a, b) => b[1] - a[1]);
+    const entries = mantenerOrden ? Object.entries(obj) : Object.entries(obj).sort((a, b) => b[1] - a[1]);
     if (entries.length === 0) {
       cont.appendChild(el("div", { class: "hint" }, "Sin datos en el mes seleccionado."));
       return;
@@ -2500,6 +2487,7 @@ function renderResumenMensual() {
   };
   rend("#resumenPorElemento", r.porElemento);
   rend("#resumenPorProveedor", r.porProveedor);
+  rend("#resumenPorHormigon", Object.fromEntries(ordenarTiposHormigon(r.porHormigon)), true);
 
   renderProductividadMensual(rows);
   renderComparacionMensual();

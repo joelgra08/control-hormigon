@@ -745,6 +745,3 @@ button.tema-switch:focus-visible { outline: 2px solid #fff; outline-offset: 2px;
 /* Botones "Buscar" junto a campos con etiqueta: alineados abajo y de la misma altura que los campos */
 .row:has(> .field > label) { align-items: flex-end; }
 .field > button { min-height: 34px; }
-
-.resumen-linea-horm { margin: 4px 0 18px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: var(--radius); line-height: 1.6; }
-.resumen-linea-horm:empty { display: none; }
