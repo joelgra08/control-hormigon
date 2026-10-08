@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.10.0";
+const APP_VERSION = "2.10.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2208,6 +2208,22 @@ function ordenarTiposHormigon(obj) {
   return Object.entries(obj).sort((a, b) => num(a[0]) - num(b[0]) || a[0].localeCompare(b[0]));
 }
 
+// Acumulado de obra: todo lo hormigonado desde el principio hasta el fin del mes
+// elegido (inclusive), por zona. Misma base que el HH/m3: sin desperdicio, sin
+// elementos por m2 y sin mortero.
+function calcularAcumulado(yyyyMm) {
+  const rows = state.lineas.filter((l) => {
+    const r = byId(state.remitos, l.remitoId);
+    return r && r.fecha && r.fecha.slice(0, 7) <= yyyyMm && !esMortero(r);
+  });
+  const torre = volumenPorGrupo(rows, "TORRE");
+  const basI = volumenPorGrupo(rows, "BASAMENTO_I");
+  const basII = volumenPorGrupo(rows, "BASAMENTO_II");
+  const basGeneral = volumenPorGrupo(rows, "BASAMENTO");
+  const basamento = basI + basII + basGeneral;
+  return { torre, basI, basII, basamento, total: torre + basamento };
+}
+
 function calcularResumenMensual(rows) {
   const k = calcularKPIs(rows);
   const porElemento = {};
@@ -2438,6 +2454,14 @@ function renderResumenMensual() {
   if (tienePagaM2) {
     $("#kpiResumenPagaM2").textContent = `${fmtM3(r.m3PagaPorM2)} m³ (${fmtM3(r.m2PagaPorM2)} m²)`;
   }
+
+  const ac = calcularAcumulado(state.resumenMes);
+  $("#acumuladoTitulo").textContent = `Acumulado de la obra hasta ${state.resumenMes}`;
+  $("#ac_torre").textContent = fmtM3(ac.torre);
+  $("#ac_basI").textContent = fmtM3(ac.basI);
+  $("#ac_basII").textContent = fmtM3(ac.basII);
+  $("#ac_bas").textContent = fmtM3(ac.basamento);
+  $("#ac_total").textContent = fmtM3(ac.total);
 
   // Una línea con los m³ del mes por tipo de hormigón (C20, C30, ...), de menor a mayor resistencia
   const lineaHorm = $("#resumenPorHormigon");
@@ -2855,6 +2879,16 @@ function exportarResumenMensualPDF() {
   const bodyProv = Object.entries(r.porProveedor).sort((a, b) => b[1] - a[1]).map(([kk, v]) => [kk, fmtM3(v) + " m3", fmtPct(v / totalProv)]);
   doc.setFont(undefined, "bold");
   doc.setFontSize(11);
+  const acPdf = calcularAcumulado(state.resumenMes);
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(11);
+  doc.text(`Acumulado de la obra hasta ${state.resumenMes}`, margin, y);
+  doc.autoTable({ startY: y + 3, head: [["Zona", "M3 acumulados"]], theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin },
+    body: [["Torre", fmtM3(acPdf.torre) + " m3"], ["Basamento I", fmtM3(acPdf.basI) + " m3"], ["Basamento II", fmtM3(acPdf.basII) + " m3"], ["Basamento unificado", fmtM3(acPdf.basamento) + " m3"], ["Total (Torre + Basamento)", fmtM3(acPdf.total) + " m3"]] });
+  y = doc.lastAutoTable.finalY + 8;
+  if (y > 230) { doc.addPage(); y = margin; }
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(11);
   const bodyHorm = ordenarTiposHormigon(r.porHormigon).map(([kk, v]) => [kk, fmtM3(v) + " m3"]);
   doc.text("M3 por tipo de hormigón", margin, y);
   doc.autoTable({ startY: y + 3, head: [["Tipo de hormigón", "M3"]], body: bodyHorm, theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin } });
@@ -2963,6 +2997,13 @@ function exportarResumenMensualExcel() {
     [],
     ["M3 por tipo de elemento"],
     ...Object.entries(r.porElemento).sort((a, b) => b[1] - a[1]),
+    [],
+    [`Acumulado de la obra hasta ${state.resumenMes} (m3)`],
+    ["Torre", calcularAcumulado(state.resumenMes).torre],
+    ["Basamento I", calcularAcumulado(state.resumenMes).basI],
+    ["Basamento II", calcularAcumulado(state.resumenMes).basII],
+    ["Basamento unificado", calcularAcumulado(state.resumenMes).basamento],
+    ["Total (Torre + Basamento)", calcularAcumulado(state.resumenMes).total],
     [],
     ["M3 por tipo de hormigón"],
     ...ordenarTiposHormigon(r.porHormigon),

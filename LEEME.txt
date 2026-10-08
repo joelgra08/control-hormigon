@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.10.0
+Versión 2.10.1
 
 QUÉ ES
 ------
@@ -36,6 +36,13 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.10.1
+------------------------------
+- Resumen mensual: "Acumulado de la obra hasta el mes elegido" con los m3 de
+  Torre, Basamento I, Basamento II, Basamento unificado y total (también en el
+  PDF y el Excel). Mismo criterio que el HH/m3: sin desperdicio, sin elementos
+  por m2 y sin mortero.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.10.0
 ------------------------------
