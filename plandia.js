@@ -210,10 +210,25 @@ function planCalcDims(origen) {
   if (area > 0 && h > 0) $("#plan_m3").value = String(planR2(area * (h / 100))).replace(".", ",");
 }
 
+// Pilar redondo: el diámetro (cm) completa Largo y Ancho con el diámetro y el área
+// del círculo (4 decimales, para no perder precisión); los m3 salen de Área×Altura.
+function planAreaCirculo(diamCm) {
+  return Math.round(Math.PI * Math.pow(diamCm / 100, 2) / 4 * 10000) / 10000;
+}
+function planOnDiametro() {
+  const d = planNum($("#plan_diamCm").value);
+  if (d > 0) {
+    $("#plan_largoCm").value = String(d).replace(".", ",");
+    $("#plan_anchoCm").value = String(d).replace(".", ",");
+    $("#plan_areaM2").value = String(planAreaCirculo(d)).replace(".", ",");
+    planCalcDims("alto");
+  }
+}
+
 function planResetForm() {
   planUI.editandoId = null;
   planUI.m3Manual = false;
-  ["plan_largoCm", "plan_anchoCm", "plan_areaM2", "plan_alturaCm"].forEach((id) => { $("#" + id).value = ""; });
+  ["plan_diamCm", "plan_largoCm", "plan_anchoCm", "plan_areaM2", "plan_alturaCm"].forEach((id) => { $("#" + id).value = ""; });
   const zona = $("#plan_zona").value;
   $("#plan_elemento").value = "";
   $("#plan_nomenclatura").value = "";
@@ -371,11 +386,12 @@ function renderPlanDia() {
 // ---------------------------------------------------------------
 function planDescargarModelo() {
   const aoa = [
-    ["Zona", "Elemento", "Nomenclatura", "Cota de arranque", "Largo (cm)", "Ancho (cm)", "Altura (cm)", "m3", "Hormigón mínimo", "Bomba", "Observaciones"],
-    ["Torre", "P", "H08", "+12,68", 40, 100, 310, "", "C45", "Sí", ""],
-    ["Torre", "P", "H09", "+12,68", "", "", "", 2.08, "C45", "Sí", ""],
-    ["Torre", "VR", "R101", "+12,00", 20, 50, 400, "", "C30", "No", ""],
-    ["Basamento I", "L", "Losa sobre N1", "+9,30", "", "", "", 38.5, "C35", "Sí", ""],
+    ["Zona", "Elemento", "Nomenclatura", "Cota de arranque", "Largo (cm)", "Ancho (cm)", "Diámetro (cm)", "Altura (cm)", "m3", "Hormigón mínimo", "Bomba", "Observaciones"],
+    ["Torre", "P", "H08", "+12,68", 40, 100, "", 310, "", "C45", "Sí", ""],
+    ["Torre", "P", "H09", "+12,68", "", "", "", "", 2.08, "C45", "Sí", ""],
+    ["Torre", "P", "R12 (redondo)", "+12,68", "", "", 50, 270, "", "C45", "Sí", "Pilar redondo Ø50"],
+    ["Torre", "VR", "R101", "+12,00", 20, 50, "", 400, "", "C30", "No", ""],
+    ["Basamento I", "L", "Losa sobre N1", "+9,30", "", "", "", "", 38.5, "C35", "Sí", ""],
   ];
   const ayuda = [
     ["Cómo completar"],
@@ -383,6 +399,7 @@ function planDescargarModelo() {
     ["Elemento: código del catálogo (P, L, VL, VR, CT, CP, TD, HL...) o su nombre."],
     ["Nomenclatura: como la usás hoy (H08, Losa N106 S1, etc.)."],
     ["Cota de arranque: con o sin signo, coma o punto (+12,68)."],
+    ["Diámetro (cm): para pilares redondos. Con Diámetro y Altura la app calcula el área del círculo (π×r²) y los m3 (Ø50 × 270 cm = 0,53 m3). No hace falta cargar Largo ni Ancho."],
     ["Largo, Ancho y Altura (cm): opcionales. Si los cargás y dejás m3 vacío, m3 = Largo×Ancho×Altura (ej. 40×100×310 cm = 1,24 m3). Si cargás m3, queda ese valor."],
     ["m3: lo que realmente lleva ese elemento (exacto, sin redondear)."],
     ["Hormigón mínimo: C20, C25, C30, C35, C45... Si lo dejás vacío se usa el habitual: P=C45, L y VL=C35, CT, VR, CP y TD=C30. En los demás elementos (HL, pantallas, etc.) es obligatorio."],
@@ -391,7 +408,7 @@ function planDescargarModelo() {
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 11 }, { wch: 11 }, { wch: 22 }, { wch: 16 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 8 }, { wch: 16 }, { wch: 8 }, { wch: 28 }];
+  ws["!cols"] = [{ wch: 11 }, { wch: 11 }, { wch: 22 }, { wch: 16 }, { wch: 11 }, { wch: 11 }, { wch: 13 }, { wch: 11 }, { wch: 8 }, { wch: 16 }, { wch: 8 }, { wch: 28 }];
   XLSX.utils.book_append_sheet(wb, ws, "Plan");
   const wa = XLSX.utils.aoa_to_sheet(ayuda);
   wa["!cols"] = [{ wch: 110 }];
@@ -421,6 +438,7 @@ function planLeerMatriz(matriz) {
     elemento: col((x) => x === "elemento"),
     nomen: col((x) => x.startsWith("nomenclatura")),
     cota: col((x) => x.startsWith("cota")),
+    diam: col((x) => x.startsWith("diametro")),
     largo: col((x) => x.startsWith("largo")),
     ancho: col((x) => x.startsWith("ancho")),
     alto: col((x) => x.startsWith("altura")),
@@ -440,9 +458,11 @@ function planLeerMatriz(matriz) {
     const get = (k) => (c[k] >= 0 ? f[c[k]] : "");
     const el_ = planBuscarElemento(get("elemento"));
     if (!el_) { errores.push(`Fila ${n}: no reconozco el elemento "${get("elemento")}".`); continue; }
-    const largoCm = planNum(get("largo")), anchoCm = planNum(get("ancho")), alturaCm = planNum(get("alto"));
+    let largoCm = planNum(get("largo")), anchoCm = planNum(get("ancho"));
+    const alturaCm = planNum(get("alto")), diamCm = planNum(get("diam"));
     let areaM2 = planNum(get("area"));
-    if (largoCm > 0 && anchoCm > 0) areaM2 = planR2((largoCm / 100) * (anchoCm / 100));
+    if (diamCm > 0) { largoCm = diamCm; anchoCm = diamCm; areaM2 = planAreaCirculo(diamCm); } // pilar redondo
+    else if (largoCm > 0 && anchoCm > 0) areaM2 = planR2((largoCm / 100) * (anchoCm / 100));
     let m3 = planNum(get("m3"));
     if ((m3 === null || m3 <= 0) && areaM2 > 0 && alturaCm > 0) m3 = planR2(areaM2 * (alturaCm / 100));
     if (m3 === null || m3 <= 0) { errores.push(`Fila ${n}: faltan los m³ (o Largo, Ancho y Altura).`); continue; }
@@ -769,6 +789,7 @@ function bindPlanDiaHandlers() {
   $("#planFecha").value = state.planFecha;
   $("#planFecha").addEventListener("change", (e) => { state.planFecha = e.target.value || todayISO(); planUI.preview = null; planResetForm(); renderPlanDia(); });
   $("#plan_elemento").addEventListener("change", planAplicarHormigonDefault);
+  $("#plan_diamCm").addEventListener("input", planOnDiametro);
   $("#plan_largoCm").addEventListener("input", () => planCalcDims("largo"));
   $("#plan_anchoCm").addEventListener("input", () => planCalcDims("ancho"));
   $("#plan_areaM2").addEventListener("input", () => planCalcDims("area"));

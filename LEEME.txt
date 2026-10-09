@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.10.2
+Versión 2.11.0
 
 QUÉ ES
 ------
@@ -36,6 +36,11 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.11.0
+------------------------------
+- Plan: pilares redondos. Campo "Diámetro (cm)" (y columna en el Excel): con
+  Diámetro y Altura calcula el área del círculo y los m3 (Ø50 x 270 cm = 0,53 m3).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.10.2
 ------------------------------
