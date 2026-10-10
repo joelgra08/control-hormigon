@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.11.0";
+const APP_VERSION = "2.11.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -407,12 +407,13 @@ async function continuarInicioLuegoDeLogin() {
 }
 
 // ---------- Recordatorio semanal de copia de seguridad ----------
-// A TODOS los usuarios (sin importar el rol) les tiene que aparecer este
-// aviso si pasó una semana (o más, o nunca) desde la última vez que
-// descargaron el JSON de respaldo. No se puede cerrar de ninguna otra
-// forma: solo descargando el backup se oculta.
+// Solo al administrador le aparece este aviso si pasó una semana (o más,
+// o nunca) desde la última descarga del JSON de respaldo. No se puede
+// cerrar de otra forma: solo descargando el backup se oculta.
 const MS_UNA_SEMANA = 7 * 24 * 60 * 60 * 1000;
 async function verificarRecordatorioBackup() {
+  const ov = $("#backupReminderOverlay");
+  if (!esAdmin()) { if (ov) ov.style.display = "none"; return; }
   const cfg = await DB.get("config", "ultimoBackupDescargado");
   const ultimo = cfg && cfg.value ? new Date(cfg.value).getTime() : 0;
   const vencido = !ultimo || (Date.now() - ultimo) > MS_UNA_SEMANA;
