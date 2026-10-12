@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.11.1";
+const APP_VERSION = "2.11.2";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2658,7 +2658,18 @@ function exportarControlRemitosExcel() {
 
   if (rows.length === 0) return toast("No hay remitos en ese rango", "error");
 
-  const data = rows.map(remitoARowControl);
+  // Un solo renglón por remito: si por algún motivo hay dos cabezales con el
+  // mismo N° (mismo proveedor y fecha), se muestra una sola vez.
+  const vistos = new Set();
+  const unicos = rows.filter((r) => {
+    const nro = (r.remitoNro || "").trim().toLowerCase();
+    if (!nro) return true;
+    const k = `${r.proveedorId || ""}|${r.fecha}|${nro}`;
+    if (vistos.has(k)) return false;
+    vistos.add(k);
+    return true;
+  });
+  const data = unicos.map(remitoARowControl);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
   ws["!cols"] = autoWidth(data);
