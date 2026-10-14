@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.11.2
+Versión 2.12.0
 
 QUÉ ES
 ------
@@ -36,6 +36,14 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.12.0
+------------------------------
+- Plan: botón "Plano de la planta" (solo obra Summit). Se elige el piso (niveles
+  102 a 108 con su NCI) y se toca un elemento del plano —pilares, pantallas o
+  sectores de losa— para agregarlo al plan del día con sus m3, medidas y cota.
+  Volver a tocarlo lo saca. Verde: en el plan de hoy. Gris: ya cargado otro día.
+  Datos en planta.js (para sumar niveles, agregar una línea a PLANTA_NIVELES).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.11.2
 ------------------------------

@@ -745,3 +745,19 @@ button.tema-switch:focus-visible { outline: 2px solid #fff; outline-offset: 2px;
 /* Botones "Buscar" junto a campos con etiqueta: alineados abajo y de la misma altura que los campos */
 .row:has(> .field > label) { align-items: flex-end; }
 .field > button { min-height: 34px; }
+
+/* ---- Plano interactivo de la planta (Plan del día) ---- */
+.planta-wrap { background: #fbfbf9; border: 1px solid var(--border); border-radius: 8px; padding: 6px; max-width: 760px; color: #444; }
+.planta-wrap svg { display: block; width: 100%; height: auto; }
+.pl-el { cursor: pointer; stroke-width: 1; vector-effect: non-scaling-stroke; transition: fill .12s; }
+.pl-libre { fill: rgba(46, 125, 90, 0.10); stroke: rgba(46, 125, 90, 0.55); }
+.pl-libre:hover { fill: rgba(46, 125, 90, 0.40); }
+.pl-hoy { fill: rgba(46, 125, 90, 0.65); stroke: #1f5c41; }
+.pl-otro { fill: rgba(110, 120, 135, 0.45); stroke: rgba(80, 90, 105, 0.8); }
+.pl-tL.pl-libre { fill: rgba(46, 125, 90, 0.04); stroke-dasharray: 4 3; }
+.pl-tL.pl-libre:hover { fill: rgba(46, 125, 90, 0.22); }
+.pl-tL.pl-hoy { fill: rgba(46, 125, 90, 0.35); }
+.pl-tL.pl-otro { fill: rgba(110, 120, 135, 0.25); }
+.pl-rot { font-size: 8px; fill: #243b30; pointer-events: none; paint-order: stroke; stroke: #fbfbf9; stroke-width: 2.5px; text-anchor: start; dominant-baseline: middle; font-weight: 600; }
+.pl-rotPA, .pl-rotL { text-anchor: middle; }
+.pl-rotL { font-size: 11px; fill: #3d5a4b; }

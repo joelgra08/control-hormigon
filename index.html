@@ -553,8 +553,20 @@
         <button type="button" id="btnPlanImportar" class="ghost">Importar desde Excel</button>
         <input type="file" id="planArchivo" accept=".xlsx,.xls,.csv" style="display:none" />
         <button type="button" id="btnPlanModelo" class="ghost">Descargar planilla modelo</button>
+        <button type="button" id="btnPlantaAbrir" class="ghost" style="display:none">Plano de la planta</button>
         <button type="button" id="btnPlanVaciar" class="ghost danger" style="margin-left:auto">Vaciar plan del día</button>
       </div>
+    </div>
+
+    <div class="panel" id="plantaPanel" style="display:none">
+      <h3 style="margin-top:0">Plano de la planta tipo</h3>
+      <p class="hint">Elegí el piso y tocá un elemento para agregarlo al plan del día (con sus m³ y la cota del nivel). Tocalo de nuevo para sacarlo. Verde: en el plan de este día. Gris: ya cargado en otro día. Los hormigones se pueden cambiar después en la tabla.</p>
+      <div class="row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div class="field"><label>Piso / nivel</label><select id="plantaNivel"></select></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="plantaBomba" style="width:auto" /> Con bomba</label></div>
+      </div>
+      <div id="plantaResumen" class="hint" style="font-weight:600;margin:8px 0"></div>
+      <div id="plantaSvgWrap" class="planta-wrap">Cargando plano...</div>
     </div>
 
     <div class="panel">
@@ -906,6 +918,7 @@
 <script src="auth.js"></script>
 <script src="programacion.js"></script>
 <script src="plandia.js"></script>
+<script src="planta.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -379,6 +379,7 @@ function renderPlanDia() {
     : "";
   renderPlanRemitosForm();
   renderPlanPreview();
+  if (typeof renderPlanta === "function") renderPlanta();
 }
 
 // ---------------------------------------------------------------
@@ -785,6 +786,7 @@ async function planGuardarRemitos() {
 // ---------------------------------------------------------------
 function bindPlanDiaHandlers() {
   if (!$("#view-plan")) return;
+  if (typeof bindPlantaHandlers === "function") bindPlantaHandlers();
   state.planFecha = todayISO();
   $("#planFecha").value = state.planFecha;
   $("#planFecha").addEventListener("change", (e) => { state.planFecha = e.target.value || todayISO(); planUI.preview = null; planResetForm(); renderPlanDia(); });
