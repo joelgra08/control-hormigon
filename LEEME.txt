@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.12.1
+Versión 2.12.2
 
 QUÉ ES
 ------
@@ -36,6 +36,12 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.12.2
+------------------------------
+- Ícono del acceso directo en el celular (iPhone): ahora la app trae su
+  apple-touch-icon (DECC por defecto, el logo de Summit en esa obra).
+  Hay que borrar el acceso directo viejo y volver a crearlo.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.12.1
 ------------------------------

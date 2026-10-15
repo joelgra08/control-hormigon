@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.12.1";
+const APP_VERSION = "2.12.2";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -291,6 +291,12 @@ function aplicarLogoObra(obraId) {
   // Sin logo cargado: Summit conserva el suyo y cualquier otra obra muestra el de DECC.
   const esSummit = obra && /summit/i.test(obra.nombre || "");
   img.src = (obra && obra.logoUrl) || (esSummit ? "favicon.svg" : "favicon-decc.png");
+  // Ícono para el acceso directo del celular (iPhone/iPad necesitan PNG o JPG).
+  const apple = $("#appleIcon");
+  if (apple) {
+    const logo = (obra && obra.logoUrl) || "";
+    apple.href = /\.(png|jpe?g)(\?|$)/i.test(logo) ? logo : (esSummit ? "apple-touch-icon-summit.png" : "apple-touch-icon.png");
+  }
   // El ícono solo es un link si la obra tiene página web cargada (Summit conserva la suya).
   const link = img.closest("a");
   if (link) {
