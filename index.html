@@ -624,6 +624,8 @@
       </div>
       <div class="actions" style="align-items:center;flex-wrap:wrap">
         <button type="button" id="btnPlanMasRemito" class="ghost">+ Remito</button>
+        <button type="button" id="btnPlanEscanear" class="ghost">Escanear remito (foto)</button>
+        <input type="file" id="planFoto" accept="image/*" capture="environment" style="display:none" />
         <span class="hint" id="planRemitosTotal" style="margin:0 0 0 8px"></span>
       </div>
       <details style="margin-top:10px"><summary class="hint" style="cursor:pointer">Pegar desde Excel</summary>
@@ -921,6 +923,7 @@
 <script src="programacion.js"></script>
 <script src="plandia.js"></script>
 <script src="planta.js"></script>
+<script src="escanear.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

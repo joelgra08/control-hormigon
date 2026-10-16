@@ -542,14 +542,16 @@ function renderPlanRemitosForm() {
     const tr = el("tr");
     const inp = (campo, tipo, ancho, extra = {}) => {
       const e = el("input", { type: tipo, value: r[campo] ?? "", style: `width:${ancho}`, ...extra });
-      e.addEventListener("input", () => { r[campo] = e.value; });
+      if (r.dudas && r.dudas[campo]) e.classList.add("dudoso");
+      e.addEventListener("input", () => { r[campo] = e.value; if (r.dudas) delete r.dudas[campo]; e.classList.remove("dudoso"); });
       return el("td", {}, e);
     };
     tr.appendChild(el("td", {}, String(i + 1)));
     tr.appendChild(inp("nro", "text", "110px", { placeholder: "N° remito" }));
     const sel = el("select", { style: "width:90px" }, hs.map((h) => el("option", { value: h.codigo }, h.codigo)));
     sel.value = r.hormigon;
-    sel.addEventListener("change", () => { r.hormigon = sel.value; });
+    if (r.dudas && r.dudas.hormigon) sel.classList.add("dudoso");
+    sel.addEventListener("change", () => { r.hormigon = sel.value; if (r.dudas) delete r.dudas.hormigon; sel.classList.remove("dudoso"); });
     tr.appendChild(el("td", {}, sel));
     tr.appendChild(inp("m3", "text", "70px", { placeholder: "m³", inputmode: "decimal" }));
     tr.appendChild(inp("horaAObra", "time", "110px"));
@@ -787,6 +789,7 @@ async function planGuardarRemitos() {
 function bindPlanDiaHandlers() {
   if (!$("#view-plan")) return;
   if (typeof bindPlantaHandlers === "function") bindPlantaHandlers();
+  if (typeof bindEscanearHandlers === "function") bindEscanearHandlers();
   state.planFecha = todayISO();
   $("#planFecha").value = state.planFecha;
   $("#planFecha").addEventListener("change", (e) => { state.planFecha = e.target.value || todayISO(); planUI.preview = null; planResetForm(); renderPlanDia(); });

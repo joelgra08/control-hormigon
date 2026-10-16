@@ -761,3 +761,6 @@ button.tema-switch:focus-visible { outline: 2px solid #fff; outline-offset: 2px;
 .pl-rot { font-size: 8px; fill: #243b30; pointer-events: none; paint-order: stroke; stroke: #fbfbf9; stroke-width: 2.5px; text-anchor: start; dominant-baseline: middle; font-weight: 600; }
 .pl-rotPA, .pl-rotL { text-anchor: middle; }
 .pl-rotL { font-size: 11px; fill: #3d5a4b; }
+
+/* Dato dudoso leído de una foto de remito: revisar */
+input.dudoso, select.dudoso { background: #fff3b0 !important; color: #222 !important; border-color: #d4a900 !important; }

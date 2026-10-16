@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.12.3
+Versión 2.13.0
 
 QUÉ ES
 ------
@@ -36,6 +36,15 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.0
+------------------------------
+- Plan > Remitos del día: botón "Escanear remito (foto)". Se saca la foto (o se
+  elige de la galería) y la app lee N° de remito, hormigón y m3 y arma la fila.
+  La lectura es gratis y se hace en el propio celular (Tesseract.js, archivos en
+  la carpeta vendor); la foto NO se guarda en ningún lado. Lo dudoso queda en
+  amarillo para revisar. Las horas y el asentamiento (a mano) no se leen.
+  La primera vez baja unos 10 MB (después queda en el celular).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.12.3
 ------------------------------
