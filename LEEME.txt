@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.13.2
+Versión 2.13.3
 
 QUÉ ES
 ------
@@ -36,6 +36,12 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.3
+------------------------------
+- Plan: al guardar los remitos, las filas del plan que ya tienen remitos quedan
+  en gris con la marca "Cargado" (también en el plano de la planta). Abajo de
+  todo, nuevo listado "Remitos ya guardados de este día" (solo consulta).
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.2
 ------------------------------

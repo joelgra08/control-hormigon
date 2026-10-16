@@ -764,3 +764,10 @@ button.tema-switch:focus-visible { outline: 2px solid #fff; outline-offset: 2px;
 
 /* Dato dudoso leído de una foto de remito: revisar */
 input.dudoso, select.dudoso { background: #fff3b0 !important; color: #222 !important; border-color: #d4a900 !important; }
+
+/* Plan del día: filas que ya tienen remitos cargados */
+tr.plan-cargado td { color: var(--muted); background: rgba(128, 128, 128, 0.12); }
+/* Plano: elemento del plan de hoy que ya tiene remitos cargados */
+.pl-cargado { fill: rgba(95, 105, 120, 0.55); stroke: #4a5361; }
+.pl-tL.pl-cargado { fill: rgba(95, 105, 120, 0.35); }
+.pl-otro { stroke-dasharray: 3 2; }

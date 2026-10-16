@@ -349,7 +349,7 @@ function renderPlanDia() {
   $("#planVacio").style.display = filas.length ? "none" : "block";
   $("#tablaPlanWrap").style.display = filas.length ? "block" : "none";
   filas.forEach((r, i) => {
-    const tr = el("tr");
+    const tr = el("tr", r.cargado ? { class: "plan-cargado" } : {});
     tr.appendChild(el("td", {}, String(i + 1)));
     tr.appendChild(el("td", {}, PLAN_ZONAS[r.zona] || r.zona));
     const dimTxt = [r.largoCm, r.anchoCm, r.alturaCm].some((x) => x != null)
@@ -360,7 +360,7 @@ function renderPlanDia() {
     tr.appendChild(el("td", { style: "text-align:right" }, fmtM3(r.m3)));
     tr.appendChild(el("td", {}, r.hormigon));
     tr.appendChild(el("td", {}, r.bombeado ? "Bomba" : "-"));
-    tr.appendChild(el("td", { style: "white-space:normal" }, r.observaciones || (r.cargado ? "✓ remitos cargados" : "")));
+    tr.appendChild(el("td", { style: "white-space:normal" }, [r.cargado ? el("span", { class: "badge si" }, "Cargado") : null, r.cargado && r.observaciones ? " " : null, r.observaciones || ""]));
     const acc = el("td", { style: "white-space:nowrap" });
     [["↑", "Subir", () => planMover(r, -1)], ["↓", "Bajar", () => planMover(r, 1)], ["✎", "Editar", () => planEditarFila(r)], ["✕", "Sacar", () => planBorrarFila(r)]]
       .forEach(([t, title, fn]) => {
@@ -379,7 +379,39 @@ function renderPlanDia() {
     : "";
   renderPlanRemitosForm();
   renderPlanPreview();
+  renderPlanGuardados();
   if (typeof renderPlanta === "function") renderPlanta();
+}
+
+// Remitos de este día que ya están guardados en la app (solo consulta).
+function renderPlanGuardados() {
+  const panel = $("#planGuardadosPanel");
+  if (!panel) return;
+  const rems = state.remitos.filter((r) => r.fecha === state.planFecha)
+    .sort((a, b) => ((a.horaDescarga || a.horaAObra || "99:99") < (b.horaDescarga || b.horaAObra || "99:99") ? -1 : 1));
+  panel.style.display = rems.length ? "" : "none";
+  const tbody = $("#tablaPlanGuardados tbody");
+  tbody.innerHTML = "";
+  let total = 0;
+  rems.forEach((r) => {
+    const lineas = state.lineas.filter((l) => l.remitoId === r.id);
+    const horm = byId(state.catalogo.hormigones, r.hormigonId);
+    const elems = lineas.map((l) => {
+      const e = byId(state.catalogo.elementos, l.elementoId);
+      return `${e ? e.codigo : "?"} ${l.nomenclatura || ""}`.trim();
+    });
+    total += Number(r.m3Remito) || 0;
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, r.remitoNro || "-"));
+    tr.appendChild(el("td", {}, horm ? horm.codigo : "-"));
+    tr.appendChild(el("td", { style: "text-align:right" }, fmtM3(r.m3Remito)));
+    tr.appendChild(el("td", {}, r.horaAObra || "-"));
+    tr.appendChild(el("td", {}, r.horaDescarga || "-"));
+    tr.appendChild(el("td", {}, lineas.some((l) => l.bombeado) ? "Bomba" : "-"));
+    tr.appendChild(el("td", { style: "white-space:normal" }, elems.join(", ") || "-"));
+    tbody.appendChild(tr);
+  });
+  $("#planGuardadosTotal").textContent = rems.length ? `${rems.length} remito(s) — ${fmtM3(total)} m³` : "";
 }
 
 // ---------------------------------------------------------------

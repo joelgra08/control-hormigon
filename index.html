@@ -562,7 +562,7 @@
 
     <div class="panel" id="plantaPanel" style="display:none">
       <h3 style="margin-top:0">Plano de la planta tipo</h3>
-      <p class="hint">Elegí el piso y tocá un elemento para agregarlo al plan del día (con sus m³ y la cota del nivel). Tocalo de nuevo para sacarlo. Verde: en el plan de este día. Gris: ya cargado en otro día. Los hormigones se pueden cambiar después en la tabla.</p>
+      <p class="hint">Elegí el piso y tocá un elemento para agregarlo al plan del día (con sus m³ y la cota del nivel). Tocalo de nuevo para sacarlo. Verde: en el plan de este día. Gris oscuro: ya tiene remitos cargados. Gris claro: ya cargado en otro día. Los hormigones se pueden cambiar después en la tabla.</p>
       <div class="row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">
         <div class="field"><label>Piso / nivel</label><select id="plantaNivel"></select></div>
         <div class="field"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="plantaBomba" style="width:auto" /> Con bomba</label></div>
@@ -648,6 +648,18 @@
         <button type="button" id="btnPlanDescartar">Descartar</button>
         <span class="hint" id="planPreviewEstado" style="color:#b3413a;margin:0 0 0 8px"></span>
       </div>
+    </div>
+
+    <div class="panel" id="planGuardadosPanel" style="display:none">
+      <h3 style="margin-top:0">Remitos ya guardados de este día</h3>
+      <p class="hint">Estos remitos ya están cargados en la app (pestaña Remitos). Acá solo se muestran para consulta.</p>
+      <div class="table-scroll cards-movil">
+        <table id="tablaPlanGuardados">
+          <thead><tr><th>N° remito</th><th>Hormigón</th><th>m³</th><th>Hora a obra</th><th>Hora descarga</th><th>Bomba</th><th>Elementos</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="hint" id="planGuardadosTotal" style="font-weight:600;margin-top:8px"></div>
     </div>
   </section>
 

@@ -54,7 +54,7 @@ function plantaEstado(e, niv) {
   const nom = plantaNorm(plantaNomenclatura(e));
   const mismo = state.planDia.filter((r) => plantaNorm(r.nomenclatura) === nom && Math.abs((r.cota ?? 0) - niv.nci) < 0.001);
   const hoy = mismo.find((r) => r.fecha === state.planFecha);
-  if (hoy) return { estado: "hoy", fila: hoy };
+  if (hoy) return { estado: hoy.cargado ? "cargado" : "hoy", fila: hoy };
   const otro = mismo.find((r) => r.fecha !== state.planFecha);
   if (otro) return { estado: "otro", fila: otro };
   return { estado: "libre" };
@@ -69,6 +69,7 @@ function plantaTitulo(e, niv, est) {
   const dim = e.desc ? ` (${e.desc})` : "";
   let t = `${e.tipo === "L" ? "Losa" : e.tipo === "P" ? "Pilar" : e.tipo === "E" ? "" : "Pantalla"} ${e.codigo}${dim} — ${plantaFmt(e.m3)} m³`;
   if (est.estado === "hoy") t += " — en el plan de hoy (tocá para sacarlo)";
+  else if (est.estado === "cargado") t += " — ya hormigonado hoy, con remitos cargados (tocá para sacarlo del plan)";
   else if (est.estado === "otro") t += ` — ya cargado el ${fmtFechaCorta(est.fila.fecha)}`;
   return t;
 }
@@ -111,7 +112,7 @@ function plantaDibujar() {
   let enPlan = 0, m3Plan = 0;
   plantaTodos().forEach((e) => {
     const est = plantaEstado(e, niv);
-    if (est.estado === "hoy") { enPlan++; m3Plan += est.fila.m3; }
+    if (est.estado === "hoy" || est.estado === "cargado") { enPlan++; m3Plan += est.fila.m3; }
     const p = document.createElementNS(NS, "path");
     p.setAttribute("d", plantaPolys(e).map((pl) => "M" + pl.map((q) => q.join(",")).join(" L") + " Z").join(" "));
     p.setAttribute("class", `pl-el pl-${est.estado} pl-t${e.tipo}`);
@@ -146,7 +147,8 @@ async function plantaClick(e) {
   if (!state.planFecha) return toast("Elegí el día", "error");
   const niv = plantaNivelActual();
   const est = plantaEstado(e, niv);
-  if (est.estado === "hoy") {
+  if (est.estado === "hoy" || est.estado === "cargado") {
+    if (est.estado === "cargado" && !confirm(`${plantaNomenclatura(e)} ya tiene remitos cargados. ¿Sacarlo igual del plan de hoy? (los remitos no se borran)`)) return;
     try { await DB.delete("planDia", est.fila.id); } catch (err) { return; }
     state.planDia = state.planDia.filter((r) => r.id !== est.fila.id);
     renderPlanDia();
