@@ -556,6 +556,10 @@ function renderPlanRemitosForm() {
     tr.appendChild(inp("m3", "text", "70px", { placeholder: "m³", inputmode: "decimal" }));
     tr.appendChild(inp("horaAObra", "time", "110px"));
     tr.appendChild(inp("horaDescarga", "time", "110px"));
+    const chk = el("input", { type: "checkbox", style: "width:auto", title: "El remito se descargó con bomba" });
+    chk.checked = !!r.bombeo;
+    chk.addEventListener("change", () => { r.bombeo = chk.checked; });
+    tr.appendChild(el("td", { style: "text-align:center" }, chk));
     const b = el("button", { type: "button", class: "ghost danger", title: "Quitar" }, "✕");
     b.addEventListener("click", () => { planUI.remitos.splice(i, 1); renderPlanRemitosForm(); });
     tr.appendChild(el("td", {}, b));
@@ -605,7 +609,7 @@ function planCalcular() {
     vistos.add(nro.toLowerCase());
     const m3 = planNum(r.m3);
     if (m3 === null || m3 <= 0) errores.push(`Remito ${nro || i + 1}: faltan los m³`);
-    return { id: `pr${i}`, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), horaAObra: r.horaAObra, horaDescarga: r.horaDescarga };
+    return { id: `pr${i}`, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo };
   });
   if (!planElementoDesperdicio()) errores.push('No hay un elemento "Desperdicio" en Referencias → Elementos');
   if (errores.length) return toast(errores.slice(0, 3).join(" · "), "error");
@@ -757,7 +761,7 @@ async function planGuardarRemitos() {
         alturaCm: p ? p.alturaCm ?? null : null, areaM2: p ? p.areaM2 ?? null : null,
         volumen: planR2(planNum(l.m3)),
         cuadrillaId: p ? cuad[p.zona] : null,
-        bombeado: p ? !!p.bombeado : false,
+        bombeado: !!r.bombeo || (p ? !!p.bombeado : false),
         colocacionId: null,
         observaciones: ["Plan del día", l.nota, p && p.observaciones].filter(Boolean).join(" · "),
         modificado: false,

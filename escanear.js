@@ -238,7 +238,7 @@ async function escEscanearArchivos(files) {
       }
       const fila = {
         nro: r.nro, hormigon: r.hormigon || (planUI.remitos[planUI.remitos.length - 1] || {}).hormigon || hs[hs.length - 1] || "",
-        m3: r.m3, horaAObra: "", horaDescarga: "", dudas: r.dudas,
+        m3: r.m3, horaAObra: "", horaDescarga: "", dudas: r.dudas, bombeo: !!r.bombeo,
       };
       planUI.remitos = planUI.remitos.filter((x) => x.nro || x.m3);
       planUI.remitos.push(fila);
@@ -247,7 +247,6 @@ async function escEscanearArchivos(files) {
       if (r.fecha && state.planFecha && r.fecha !== state.planFecha) {
         toast(`Ojo: el remito dice ${fmtFechaCorta(r.fecha)} y el plan es del ${fmtFechaCorta(state.planFecha)}`, "error");
       }
-      if (r.bombeo) fila.bombeo = true;
       planUI.ultimoTexto = data.text;
     }
     if (ok) toast(`Leí ${ok} remito${ok === 1 ? "" : "s"}. Revisá lo marcado en amarillo y completá las horas.`, "ok");
