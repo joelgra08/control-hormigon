@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.13.0
+Versión 2.13.1
 
 QUÉ ES
 ------
@@ -36,6 +36,10 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.1
+------------------------------
+- Plano de la planta: agregado el Nivel 109 (NCI +29,76), Piso 9.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.0
 ------------------------------

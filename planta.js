@@ -20,6 +20,7 @@ const PLANTA_NIVELES = [
   { nivel: 106, nci: 21.12, piso: 6 },
   { nivel: 107, nci: 24.00, piso: 7 },
   { nivel: 108, nci: 26.88, piso: 8 },
+  { nivel: 109, nci: 29.76, piso: 9 },
 ];
 
 // Hormigón mínimo sugerido por tipo (se puede cambiar después en la tabla del plan).
