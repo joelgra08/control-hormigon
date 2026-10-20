@@ -444,6 +444,29 @@ body[data-rol="proveedor_hormigon"] .solo-puede-agregar {
   display: none !important;
 }
 
+/* Link al Plan de llenado: solo administrador y controller */
+body[data-rol="asistente"] .solo-admin-controller,
+body[data-rol="probetas"] .solo-admin-controller,
+body[data-rol="proyecto_ejecutivo"] .solo-admin-controller,
+body[data-rol="proveedor_hormigon"] .solo-admin-controller,
+body:not([data-rol]) .solo-admin-controller {
+  display: none !important;
+}
+a.link-plan-llenado {
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--top);
+  border-radius: 6px;
+  color: var(--top);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+a.link-plan-llenado:hover { background: var(--top); color: #fff; }
+[data-theme="dark"] a.link-plan-llenado { border-color: #6fae8c; color: #9fd4b6; }
+
 /* Probetas: solo ve su propia pestaña */
 body[data-rol="probetas"] nav.tabs button:not([data-tab="probetas"]) {
   display: none !important;

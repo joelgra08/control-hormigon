@@ -290,7 +290,10 @@
   <section id="view-programacion" class="view">
     <div class="panel">
       <div class="row between">
-        <h2 style="margin:0">Programación de hormigón</h2>
+        <div class="row" style="align-items:center;gap:10px;flex-wrap:wrap">
+          <h2 style="margin:0">Programación de hormigón</h2>
+          <a class="link-plan-llenado solo-admin-controller" href="https://joelgra08.github.io/plan-summit/" target="_blank" rel="noopener noreferrer" style="display:none" title="Abre el plan de llenado de la torre en otra pestaña">Plan de llenado ↗</a>
+        </div>
         <div class="seg" id="progZonaTabs">
           <button type="button" data-zona="TORRE">Torre</button>
           <button type="button" data-zona="BASAMENTO">Basamento</button>
@@ -548,7 +551,10 @@
   <!-- ===================== PLAN DEL DÍA ===================== -->
   <section id="view-plan" class="view">
     <div class="panel">
-      <h2>Plan del día</h2>
+      <div class="row between" style="align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="margin:0">Plan del día</h2>
+        <a class="link-plan-llenado solo-admin-controller" href="https://joelgra08.github.io/plan-summit/" target="_blank" rel="noopener noreferrer" style="display:none" title="Abre el plan de llenado de la torre en otra pestaña">Plan de llenado ↗</a>
+      </div>
       <p class="hint">Cargá lo que se va a llenar ese día, con los m³ exactos de cada elemento y el hormigón mínimo que pide. A última hora cargás solo los remitos y la app los reparte entre los elementos. Un hormigón más fuerte puede cubrir uno más débil, nunca al revés.</p>
       <div id="planAviso" class="hint" style="display:none;color:#b3413a;font-weight:600"></div>
       <div class="row" style="align-items:flex-end;gap:10px;flex-wrap:wrap">

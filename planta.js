@@ -38,6 +38,12 @@ function plantaDisponible() {
   return !!o && /summit/i.test(o.nombre || "");
 }
 
+// Link al Plan de llenado (otra web): solo en la obra Summit; el rol lo filtra el CSS.
+function linkPlanLlenadoActualizar() {
+  const ok = plantaDisponible();
+  document.querySelectorAll(".link-plan-llenado").forEach((a) => { a.style.display = ok ? "inline-flex" : "none"; });
+}
+
 function plantaNivelActual() {
   return PLANTA_NIVELES.find((n) => n.nivel === plantaUI.nivel) || PLANTA_NIVELES[0];
 }

@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 =====================================================
-Versión 2.13.5
+Versión 2.13.6
 
 QUÉ ES
 ------
@@ -36,6 +36,12 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.2
   * Al guardar, la suma de los elementos tiene que coincidir exacto con el
     M3 del remito. Si sobró hormigón, se carga como un elemento del tipo
     "Desperdicio" (Referencias → Elementos) hasta completar el total.
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.6
+------------------------------
+- Obra Summit: en las pestañas Plan y Programación hay un link "Plan de llenado"
+  que abre en otra pestaña https://joelgra08.github.io/plan-summit/ (plan día por
+  día con vista 3D). Lo ven solo Administrador y Controller.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.5
 ------------------------------

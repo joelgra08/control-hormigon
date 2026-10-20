@@ -333,6 +333,7 @@ async function planVaciarDia() {
 }
 
 function renderPlanDia() {
+  if (typeof linkPlanLlenadoActualizar === "function") linkPlanLlenadoActualizar();
   const root = $("#view-plan");
   if (!root) return;
   const aviso = $("#planAviso");

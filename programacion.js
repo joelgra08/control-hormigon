@@ -302,6 +302,7 @@ function progSetRango(desde, hasta) {
 }
 
 function renderProgramacion() {
+  if (typeof linkPlanLlenadoActualizar === "function") linkPlanLlenadoActualizar();
   const root = $("#progLista");
   if (!root) return;
   const zona = state.prog.zona;
