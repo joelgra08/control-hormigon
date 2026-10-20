@@ -42,9 +42,13 @@ function plantaNivelActual() {
   return PLANTA_NIVELES.find((n) => n.nivel === plantaUI.nivel) || PLANTA_NIVELES[0];
 }
 
-function plantaNomenclatura(e) { return e.codigo; }
+function plantaNomenclatura(e, niv) {
+  const n = niv || plantaNivelActual();
+  const tipo = e.tipo === "P" ? "Pilar " : e.tipo === "PA" ? "Pantalla " : "";
+  return `N${n.nivel} ${tipo}${e.codigo}`;
+}
 // Compara sin espacios, guiones ni el sufijo " · P2" de versiones anteriores.
-function plantaNorm(t) { return String(t || "").replace(/\s*·\s*P\d+$/, "").replace(/[\s-]/g, "").toLowerCase(); }
+function plantaNorm(t) { return String(t || "").replace(/^\s*N\d{3}\s*(pilar|pantalla)?\s+/i, "").replace(/\s*·\s*P\d+$/, "").replace(/[\s-]/g, "").toLowerCase(); }
 function plantaFmt(n) { return String(n).replace(".", ","); }
 function plantaFmtCota(n) { return `${n > 0 ? "+" : ""}${plantaFmt(n.toFixed(2))}`; }
 
@@ -103,6 +107,28 @@ async function plantaCargarSvg() {
   plantaUI.cargando = false;
 }
 
+// Agrega "N106 Pilar" al principio de lo ya cargado desde el plano (plan y líneas de remitos).
+function plantaPendientesNivel() {
+  const sinPref = (t) => !/^\s*N\d{3}\s/i.test(t || "");
+  const niv = (c) => PLANTA_NIVELES.find((n) => Math.abs(n.nci - c) < 0.001);
+  const palabra = (id) => { const x = state.catalogo.elementos.find((q) => q.id === id); const c = x ? (x.codigo || "").toUpperCase() : ""; return c === "P" ? "Pilar " : c === "PA" ? "Pantalla " : ""; };
+  const plan = state.planDia.filter((r) => /Desde el plano/.test(r.observaciones || "") && sinPref(r.nomenclatura) && r.cota != null && niv(r.cota));
+  const lin = state.lineas.filter((l) => /Desde el plano/.test(l.observaciones || "") && sinPref(l.nomenclatura) && l.nivelFondo != null && niv(l.nivelFondo));
+  return { plan, lin, niv, palabra };
+}
+async function plantaCorregirNivel() {
+  const { plan, lin, niv, palabra } = plantaPendientesNivel();
+  if (!plan.length && !lin.length) return;
+  if (!confirm(`Se agregará el nivel a ${plan.length} filas del plan y ${lin.length} líneas de remitos cargadas desde el plano. ¿Seguir?`)) return;
+  const f = (x, c) => ({ ...x, nomenclatura: `N${niv(c).nivel} ${palabra(x.elementoId)}${x.nomenclatura}` });
+  try {
+    if (plan.length) await DB.bulkPut("planDia", plan.map((r) => f(r, r.cota)));
+    if (lin.length) await DB.bulkPut("remitoLineas", lin.map((l) => f(l, l.nivelFondo)));
+  } catch (e) { return; }
+  toast("Nivel agregado", "ok");
+  if (typeof renderAll === "function") renderAll(); else renderPlanta();
+}
+
 function plantaDibujar() {
   const g = $("#plantaHot");
   if (!g) return;
@@ -148,7 +174,7 @@ async function plantaClick(e) {
   const niv = plantaNivelActual();
   const est = plantaEstado(e, niv);
   if (est.estado === "hoy" || est.estado === "cargado") {
-    if (est.estado === "cargado" && !confirm(`${plantaNomenclatura(e)} ya tiene remitos cargados. ¿Sacarlo igual del plan de hoy? (los remitos no se borran)`)) return;
+    if (est.estado === "cargado" && !confirm(`${plantaNomenclatura(e, niv)} ya tiene remitos cargados. ¿Sacarlo igual del plan de hoy? (los remitos no se borran)`)) return;
     try { await DB.delete("planDia", est.fila.id); } catch (err) { return; }
     state.planDia = state.planDia.filter((r) => r.id !== est.fila.id);
     renderPlanDia();
@@ -215,6 +241,9 @@ function renderPlanta() {
   btn.textContent = plantaUI.abierta ? "Ocultar plano" : "Plano de la planta";
   if (!plantaUI.abierta) return;
   plantaCargarNiveles();
+  const pend = plantaPendientesNivel();
+  const b = $("#btnPlantaNivel");
+  if (b) { const n = pend.plan.length + pend.lin.length; b.style.display = n && esAdmin() ? "" : "none"; }
   plantaCargarSvg().then(plantaDibujar);
 }
 
@@ -227,5 +256,6 @@ function bindPlantaHandlers() {
     try { localStorage.setItem("plantaNivel", String(plantaUI.nivel)); } catch (e) { /* sin storage */ }
     plantaDibujar();
   });
+  const bn = $("#btnPlantaNivel"); if (bn) bn.addEventListener("click", plantaCorregirNivel);
   $("#plantaBomba").addEventListener("change", (ev) => { plantaUI.conBomba = ev.target.checked; });
 }
