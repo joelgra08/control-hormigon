@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.13.6";
+const APP_VERSION = "2.13.7";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2572,19 +2572,33 @@ function exportarProbetasExcel() {
   const obra = byId(state.obras, state.obraId);
   const rows = remitosConProbetas();
   if (rows.length === 0) return toast("No hay remitos con probetas en ese rango", "error");
+  const aMin = (h) => { const m = /^(\d{1,2}):(\d{2})/.exec(h || ""); return m ? +m[1] * 60 + +m[2] : null; };
   const data = rows.map((r) => {
     const horm = byId(state.catalogo.hormigones, r.hormigonId);
-    const elementos = state.lineas.filter((l) => l.remitoId === r.id)
-      .map((l) => byId(state.catalogo.elementos, l.elementoId)).filter(Boolean)
-      .map((e) => e.nombre);
+    const lins = state.lineas.filter((l) => l.remitoId === r.id);
+    const unicos = (arr) => [...new Set(arr.filter((x) => x !== "" && x !== null && x !== undefined))];
+    const asent = unicos(lins.map((l) => l.asentamiento)).join(" / ");
+    const elementos = unicos(lins.map((l) => {
+      if (l.nomenclatura) return l.nomenclatura;
+      const e = byId(state.catalogo.elementos, l.elementoId);
+      return e ? e.nombre : "";
+    })).join(", ");
+    const bomba = lins.length ? (lins.some((l) => l.bombeado) ? "SI" : "NO") : "";
+    let tiempo = "";
+    const t0 = aMin(r.horaAObra), t1 = aMin(r.horaDescarga);
+    if (t0 !== null && t1 !== null) {
+      const d = (t1 - t0 + 1440) % 1440;
+      tiempo = `${Math.floor(d / 60)}:${String(d % 60).padStart(2, "0")}`;
+    }
     return {
       "Fecha": r.fecha,
       "N° Remito": r.remitoNro || "",
       "Tipo de hormigón": horm ? `${horm.codigo} (${horm.resistencia})` : "",
-      "Elemento(s)": [...new Set(elementos)].join(", "),
-      "Probeta 1": r.probeta1 ?? "",
-      "Probeta 2": r.probeta2 ?? "",
-      "Probeta 3": r.probeta3 ?? "",
+      "Asentamiento (cm)": asent,
+      "N° de probeta": [r.probeta1, r.probeta2, r.probeta3].filter((x) => x !== null && x !== undefined && x !== "").join(" / "),
+      "Bomba": bomba,
+      "Elemento(s)": elementos,
+      "Tiempo planta-descarga (hs)": tiempo,
     };
   });
   const wb = XLSX.utils.book_new();

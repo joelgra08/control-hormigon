@@ -563,7 +563,7 @@ async function planImportarArchivo(file) {
 function planFilaRemitoVacia() {
   const hs = planHormigonesCatalogo();
   const ultimo = planUI.remitos[planUI.remitos.length - 1];
-  return { nro: "", hormigon: ultimo ? ultimo.hormigon : (hs[hs.length - 1]?.codigo || ""), m3: "", horaAObra: "", horaDescarga: "" };
+  return { nro: "", hormigon: ultimo ? ultimo.hormigon : (hs[hs.length - 1]?.codigo || ""), m3: "", asentamiento: "", horaAObra: "", horaDescarga: "" };
 }
 
 function renderPlanRemitosForm() {
@@ -587,6 +587,7 @@ function renderPlanRemitosForm() {
     sel.addEventListener("change", () => { r.hormigon = sel.value; if (r.dudas) delete r.dudas.hormigon; sel.classList.remove("dudoso"); });
     tr.appendChild(el("td", {}, sel));
     tr.appendChild(inp("m3", "text", "70px", { placeholder: "m³", inputmode: "decimal" }));
+    tr.appendChild(inp("asentamiento", "text", "60px", { placeholder: "cm", inputmode: "decimal" }));
     tr.appendChild(inp("horaAObra", "time", "110px"));
     tr.appendChild(inp("horaDescarga", "time", "110px"));
     const chk = el("input", { type: "checkbox", style: "width:auto", title: "El remito se descargó con bomba" });
@@ -642,7 +643,9 @@ function planCalcular() {
     vistos.add(nro.toLowerCase());
     const m3 = planNum(r.m3);
     if (m3 === null || m3 <= 0) errores.push(`Remito ${nro || i + 1}: faltan los m³`);
-    return { id: `pr${i}`, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo };
+    const asent = planNum(r.asentamiento);
+    if (asent === null || asent <= 0) errores.push(`Remito ${nro || i + 1}: falta el asentamiento (cm)`);
+    return { id: `pr${i}`, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), asentamiento: asent, horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo };
   });
   if (!planElementoDesperdicio()) errores.push('No hay un elemento "Desperdicio" en Referencias → Elementos');
   if (errores.length) return toast(errores.slice(0, 3).join(" · "), "error");
@@ -788,7 +791,7 @@ async function planGuardarRemitos() {
         id: uid("lin"), remitoId, obraId: state.obraId,
         elementoId: p ? p.elementoId : desp.id,
         nomenclatura: p ? p.nomenclatura : "",
-        sector: "", asentamiento: null,
+        sector: "", asentamiento: r.asentamiento ?? null,
         nivelFondo: p && p.cota !== null && p.cota !== undefined ? p.cota : null,
         largoCm: p ? p.largoCm ?? null : null, anchoCm: p ? p.anchoCm ?? null : null,
         alturaCm: p ? p.alturaCm ?? null : null, areaM2: p ? p.areaM2 ?? null : null,

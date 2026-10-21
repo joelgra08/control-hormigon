@@ -1,6 +1,8 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
-=====================================================
-Versión 2.13.6
+==============================================
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
+------------------------------
+Versión 2.13.7
 
 QUÉ ES
 ------
@@ -42,6 +44,11 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.13.6
 - Obra Summit: en las pestañas Plan y Programación hay un link "Plan de llenado"
   que abre en otra pestaña https://joelgra08.github.io/plan-summit/ (plan día por
   día con vista 3D). Lo ven solo Administrador y Controller.
+=======
+- Plan > Remitos del día: nueva columna "Asent. (cm)", obligatoria para calcular el reparto
+  (se guarda en cada línea del remito). Lo escaneado deja asentamiento y horas en amarillo.
+- Excel de probetas con columnas: Fecha, N° remito, Tipo de hormigón, Asentamiento, N° de
+  probeta, Bomba, Elemento(s), Tiempo planta-descarga (hh:mm, de "A obra" a "Descarga").
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.5
 ------------------------------

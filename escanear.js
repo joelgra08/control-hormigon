@@ -6,7 +6,7 @@
      Tesseract.js (archivos en vendor/tesseract). Es gratis, la foto
      no sale del dispositivo y NO se guarda en ningún lado.
    - Lee lo impreso: N° de remito, fecha, m3, hormigón y bombeo. Las
-     horas y el asentamiento (a mano) no se leen: se completan a mano.
+     horas y el asentamiento (a mano) no se leen: quedan en amarillo para completar.
    - Lo dudoso queda marcado en amarillo para revisar.
    =========================================================== */
 
@@ -238,7 +238,8 @@ async function escEscanearArchivos(files) {
       }
       const fila = {
         nro: r.nro, hormigon: r.hormigon || (planUI.remitos[planUI.remitos.length - 1] || {}).hormigon || hs[hs.length - 1] || "",
-        m3: r.m3, horaAObra: "", horaDescarga: "", dudas: r.dudas, bombeo: !!r.bombeo,
+        m3: r.m3, asentamiento: "", horaAObra: "", horaDescarga: "", bombeo: !!r.bombeo,
+        dudas: { ...(r.dudas || {}), asentamiento: true, horaAObra: true, horaDescarga: true },
       };
       planUI.remitos = planUI.remitos.filter((x) => x.nro || x.m3);
       planUI.remitos.push(fila);
