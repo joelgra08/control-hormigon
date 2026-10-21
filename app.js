@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.13.7";
+const APP_VERSION = "2.13.8";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -1907,6 +1907,10 @@ async function onSubmitRemito(e) {
   const m3RemitoVal = getNum("m3Remito");
   if (m3RemitoVal === null || m3RemitoVal <= 0) return toast("Falta el M3 del remito (camión)", "error");
   if (state.lineasForm.length === 0) return toast("Agregá al menos un elemento a este remito", "error");
+  if (!state.editingRemitoId) {
+    if (!get("horaAObra")) return toast("Falta la hora de salida de planta (Hora - A obra)", "error");
+    if (!get("horaDescarga")) return toast("Falta la hora de descarga", "error");
+  }
 
   const remitoId = state.editingRemitoId || uid("rem");
 

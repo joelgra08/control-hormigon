@@ -643,6 +643,8 @@ function planCalcular() {
     vistos.add(nro.toLowerCase());
     const m3 = planNum(r.m3);
     if (m3 === null || m3 <= 0) errores.push(`Remito ${nro || i + 1}: faltan los m³`);
+    if (!r.horaAObra) errores.push(`Remito ${nro || i + 1}: falta la hora de salida de planta`);
+    if (!r.horaDescarga) errores.push(`Remito ${nro || i + 1}: falta la hora de descarga`);
     const asent = planNum(r.asentamiento);
     if (asent === null || asent <= 0) errores.push(`Remito ${nro || i + 1}: falta el asentamiento (cm)`);
     return { id: `pr${i}`, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), asentamiento: asent, horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo };

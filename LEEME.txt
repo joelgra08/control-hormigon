@@ -1,8 +1,13 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.8
+------------------------------
+- Hora de salida de planta ("A obra") y hora de descarga obligatorias en remitos nuevos
+  (carga manual y Plan > Remitos del día). Los remitos viejos no se tocan.
+
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
 ------------------------------
-Versión 2.13.7
+Versión 2.13.8
 
 QUÉ ES
 ------
