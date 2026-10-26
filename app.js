@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.13.8";
+const APP_VERSION = "2.13.9";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -1487,7 +1487,31 @@ function renderHierro() {
     const tr = el("tr");
     tr.appendChild(el("td", {}, fmtFechaCorta(p.fecha)));
     tr.appendChild(el("td", {}, p.proveedor || "-"));
-    tr.appendChild(el("td", { style: "white-space:normal" }, resumenItemsHierro(p.id)));
+    const items = state.pedidoHierroLineas.filter((l) => l.pedidoId === p.id);
+    const tdItems = el("td", { style: "white-space:normal" });
+    if (items.length === 0) {
+      tdItems.appendChild(document.createTextNode("-"));
+    } else {
+      const cab = el("div", { class: "hierro-cab" });
+      const flecha = el("span", { class: "hierro-flecha" }, "▸");
+      cab.appendChild(flecha);
+      cab.appendChild(document.createTextNode(` ${items.length} ${items.length === 1 ? "ítem" : "ítems"} — tocá para ver el detalle`));
+      const lista = el("ul", { class: "hierro-lista", style: "display:none" },
+        items.map((it) => el("li", {}, [
+          el("span", { class: "hierro-it" }, detalleLineaHierro(it)),
+          el("strong", {}, ` ${it.cantidad} ${it.unidad}`),
+        ])));
+      tdItems.appendChild(cab);
+      tdItems.appendChild(lista);
+      tr.classList.add("hierro-fila");
+      tr.addEventListener("click", (ev) => {
+        if (ev.target.closest("button, a")) return;
+        const abierto = lista.style.display !== "none";
+        lista.style.display = abierto ? "none" : "";
+        flecha.textContent = abierto ? "▸" : "▾";
+      });
+    }
+    tr.appendChild(tdItems);
     const tdFactura = el("td");
     const facturas = facturasDePedido(p);
     if (facturas.length > 0) {

@@ -1,5 +1,10 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.9
+------------------------------
+- Pedidos de hierro: cada pedido muestra "N ítems"; al tocarlo se despliega la lista
+  prolija (un ítem por renglón con su cantidad).
+
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.8
 ------------------------------
 - Hora de salida de planta ("A obra") y hora de descarga obligatorias en remitos nuevos
@@ -7,7 +12,7 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.13.8
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
 ------------------------------
-Versión 2.13.8
+Versión 2.13.9
 
 QUÉ ES
 ------
