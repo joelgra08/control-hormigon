@@ -1,5 +1,10 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.10
+-------------------------------
+- Pedidos de hierro: el detalle desplegable ahora muestra las observaciones del pedido
+  y las de cada ítem.
+
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.9
 ------------------------------
 - Pedidos de hierro: cada pedido muestra "N ítems"; al tocarlo se despliega la lista
@@ -12,7 +17,7 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.13.8
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
 ------------------------------
-Versión 2.13.9
+Versión 2.13.10
 
 QUÉ ES
 ------

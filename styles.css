@@ -803,3 +803,7 @@ tr.hierro-fila { cursor: pointer; }
 .hierro-lista li { display: flex; justify-content: space-between; gap: 16px; padding: 5px 8px; border-bottom: 1px solid rgba(0,0,0,.08); }
 .hierro-lista li:nth-child(odd) { background: rgba(0,0,0,.03); }
 .hierro-lista li:last-child { border-bottom: 0; }
+.hierro-lista li { flex-wrap: wrap; }
+.hierro-lista .hierro-it { flex: 1 1 auto; }
+.hierro-lista .hierro-obs { flex-basis: 100%; font-size: .85em; color: var(--muted, #666); font-style: italic; }
+.hierro-lista li.hierro-obs-pedido { display: block; margin-top: 6px; background: rgba(0,0,0,.05) !important; border-radius: 4px; }

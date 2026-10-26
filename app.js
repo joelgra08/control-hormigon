@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.13.9";
+const APP_VERSION = "2.13.10";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -1500,7 +1500,9 @@ function renderHierro() {
         items.map((it) => el("li", {}, [
           el("span", { class: "hierro-it" }, detalleLineaHierro(it)),
           el("strong", {}, ` ${it.cantidad} ${it.unidad}`),
+          ...(it.observaciones ? [el("span", { class: "hierro-obs" }, it.observaciones)] : []),
         ])));
+      if (p.observaciones) lista.appendChild(el("li", { class: "hierro-obs-pedido" }, [el("strong", {}, "Observaciones: "), document.createTextNode(p.observaciones)]));
       tdItems.appendChild(cab);
       tdItems.appendChild(lista);
       tr.classList.add("hierro-fila");
