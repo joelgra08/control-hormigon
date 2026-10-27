@@ -1,5 +1,14 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+QUÉ CAMBIÓ EN LA VERSIÓN 2.15.0
+------------------------------
+- Obra Summit: desde el Plan de llenado (botón "→ Plan" del día) se puede pasar todo
+  lo de ese día al plan del día de la app. Antes de cargar muestra una vista previa.
+  No duplica: lo que ya está en el plan de ese día se saltea. Si un elemento ya se
+  llenó (tiene remitos), está en el plan de otro día o falta su nivel en el plano,
+  aparece el error y no deja seguir. Lo cargado queda igual que desde el plano
+  ("N109 Pilar C07", cota, m³, hormigón, bomba o grúa). Solo Administrador y Asistente.
+
 QUÉ CAMBIÓ EN LA VERSIÓN 2.14.0
 ------------------------------
 - Plan: "Zona" pasa a ser "Cuadrilla" (lista de Referencias → Cuadrillas) y se elige fila por
@@ -27,7 +36,7 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.13.8
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
 ------------------------------
-Versión 2.14.0
+Versión 2.15.0
 
 QUÉ ES
 ------

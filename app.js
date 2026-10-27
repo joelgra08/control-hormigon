@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.14.0";
+const APP_VERSION = "2.15.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -410,6 +410,7 @@ async function continuarInicioLuegoDeLogin() {
   resetLineaForm();
   aplicarPermisosUI();
   verificarRecordatorioBackup();
+  if (typeof plantaImportarDesdeURL === "function") plantaImportarDesdeURL();
 }
 
 // ---------- Recordatorio semanal de copia de seguridad ----------
@@ -551,6 +552,9 @@ function bindGlobalHandlers() {
     closeModal("#modalObra");
     toast("Obra eliminada", "ok");
   });
+
+  const bImp = $("#btnImpConfirmar");
+  if (bImp) bImp.addEventListener("click", plantaConfirmarImport);
 
   $all("[data-close-modal]").forEach((b) =>
     b.addEventListener("click", () => closeModal(b.closest(".modal-backdrop")))

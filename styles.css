@@ -807,3 +807,6 @@ tr.hierro-fila { cursor: pointer; }
 .hierro-lista .hierro-it { flex: 1 1 auto; }
 .hierro-lista .hierro-obs { flex-basis: 100%; font-size: .85em; color: var(--muted, #666); font-style: italic; }
 .hierro-lista li.hierro-obs-pedido { display: block; margin-top: 6px; background: rgba(0,0,0,.05) !important; border-radius: 4px; }
+
+/* Importación desde el Plan de llenado */
+.imp-errores { margin: 0; padding-left: 18px; color: #b3413a; font-weight: 600; display: grid; gap: 6px; }

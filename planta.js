@@ -174,6 +174,32 @@ function plantaDibujar() {
     : `Piso ${niv.piso}: todavía no hay nada de este piso en el plan de este día.`;
 }
 
+// Una fila del plan del día armada desde el plano (mismo formato para el plano y para la importación).
+function plantaFilaNueva(e, niv, elem, fecha, orden, bombeado, obs, m3) {
+  const vol = m3 != null ? m3 : e.m3;
+  let area = null;
+  if (e.alturaCm) area = Math.round((vol / (e.alturaCm / 100)) * 10000) / 10000;
+  return {
+    id: uid("plan"),
+    obraId: state.obraId,
+    fecha,
+    orden,
+    cuadrillaId: (planCuadrillaTorre() || {}).id || null,
+    elementoId: elem.id,
+    nomenclatura: plantaNomenclatura(e, niv),
+    cota: niv.nci,
+    largoCm: e.diamCm || e.largoCm || null,
+    anchoCm: e.diamCm || e.anchoCm || null,
+    areaM2: area,
+    alturaCm: e.alturaCm || null,
+    m3: planR2(vol),
+    hormigon: PLANTA_HORMIGON[e.tipo],
+    bombeado: !!bombeado,
+    observaciones: obs,
+    cargado: false,
+  };
+}
+
 async function plantaClick(e) {
   if (!puedeAgregar()) return;
   if (!state.planFecha) return toast("Elegí el día", "error");
@@ -195,27 +221,7 @@ async function plantaClick(e) {
   if (!planHormigonesCatalogo().some((h) => h.codigo === horm)) return toast(`Falta el hormigón ${horm} en Referencias`, "error");
   if (!planCuadrillaTorre()) return toast("Falta una cuadrilla con grupo Torre en Referencias → Cuadrillas", "error");
   const filas = planFilasDelDia();
-  let area = null;
-  if (e.alturaCm) area = Math.round((e.m3 / (e.alturaCm / 100)) * 10000) / 10000;
-  const fila = {
-    id: uid("plan"),
-    obraId: state.obraId,
-    fecha: state.planFecha,
-    orden: filas.length ? Math.max(...filas.map((f) => f.orden)) + 1 : 1,
-    cuadrillaId: (planCuadrillaTorre() || {}).id || null,
-    elementoId: elem.id,
-    nomenclatura: plantaNomenclatura(e, niv),
-    cota: niv.nci,
-    largoCm: e.diamCm || e.largoCm || null,
-    anchoCm: e.diamCm || e.anchoCm || null,
-    areaM2: area,
-    alturaCm: e.alturaCm || null,
-    m3: planR2(e.m3),
-    hormigon: horm,
-    bombeado: plantaUI.conBomba,
-    observaciones: "Desde el plano",
-    cargado: false,
-  };
+  const fila = plantaFilaNueva(e, niv, elem, state.planFecha, filas.length ? Math.max(...filas.map((f) => f.orden)) + 1 : 1, plantaUI.conBomba, "Desde el plano");
   try { await DB.put("planDia", fila); } catch (err) { return; }
   state.planDia.push(fila);
   renderPlanDia();
@@ -265,4 +271,134 @@ function bindPlantaHandlers() {
   });
   const bn = $("#btnPlantaNivel"); if (bn) bn.addEventListener("click", plantaCorregirNivel);
   $("#plantaBomba").addEventListener("change", (ev) => { plantaUI.conBomba = ev.target.checked; });
+}
+
+
+// ---------------------------------------------------------------
+//  Importar el día desde "Plan de llenado" (joelgra08.github.io/plan-summit)
+//  Llega en la URL: ?importarPlan=<base64url de {v, fecha, items:[{c, n, b, m?, t?, nom?}]}>
+//  - c: código del elemento en el plano (o nombre libre si t viene), n: nivel, b: con bomba.
+//  - Nada se duplica: lo que ya está en el plan de ese día se saltea.
+//  - Si algo choca (ya se llenó, o está en el plan de otro día, o falta el nivel) no deja seguir.
+// ---------------------------------------------------------------
+let plantaImport = null;
+function plantaLeerImport() {
+  const q = new URLSearchParams(location.search);
+  const raw = q.get("importarPlan");
+  if (!raw) return null;
+  q.delete("importarPlan");
+  const limpia = location.pathname + (q.toString() ? "?" + q.toString() : "") + location.hash;
+  try { history.replaceState(null, "", limpia); } catch (e) { /* sin history */ }
+  try {
+    const b64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+    const txt = decodeURIComponent(escape(atob(b64 + "===".slice((b64.length + 3) % 4))));
+    const d = JSON.parse(txt);
+    if (!d || !d.fecha || !Array.isArray(d.items)) throw new Error("formato");
+    return d;
+  } catch (e) {
+    return { error: "No se pudo leer lo que mandó el Plan de llenado." };
+  }
+}
+
+async function plantaImportarDesdeURL() {
+  const d = plantaLeerImport();
+  if (!d) return;
+  if (d.error) return toast(d.error, "error");
+  if (!puedeAgregar()) return toast("Tu usuario no puede cargar el plan del día.", "error");
+  if (!plantaDisponible()) {
+    const summit = state.obras.find((o) => /summit/i.test(o.nombre || ""));
+    if (!summit) return toast("No encuentro la obra Summit.", "error");
+    await setObraActiva(summit.id);
+  }
+  plantaImport = plantaRevisarImport(d);
+  plantaMostrarImport();
+}
+
+function plantaRevisarImport(d) {
+  const errores = [], nuevas = [], saltear = [];
+  const vistos = new Set();
+  const misma = (nom, cota) => (r, campo) => plantaNorm(r.nomenclatura) === nom && Math.abs((r[campo] ?? -9999) - cota) < 0.001;
+  const elemCat = (cod) => state.catalogo.elementos.find((x) => (x.codigo || "").toUpperCase() === cod);
+  if (!planCuadrillaTorre()) errores.push("Falta una cuadrilla con grupo Torre en Referencias → Cuadrillas.");
+  for (const it of d.items) {
+    const niv = PLANTA_NIVELES.find((n) => n.nivel === it.n);
+    const base = it.t ? { tipo: it.t, codigo: it.nom || it.c, m3: it.m || 0 } : plantaTodos().find((x) => x.codigo === it.c);
+    const nombre = `N${it.n} ${it.nom || it.c}`;
+    if (!base) { errores.push(`${nombre}: no está en el plano de la app.`); continue; }
+    if (!niv) { errores.push(`${nombre}: falta el nivel N${it.n} en el plano de la app. Cargalo primero.`); continue; }
+    const nom = plantaNomenclatura(base, niv), norm = plantaNorm(nom);
+    const clave = norm + "@" + niv.nci;
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    const elem = elemCat(PLANTA_COD_ELEMENTO[base.tipo]);
+    if (!elem) { errores.push(`${nom}: falta el elemento "${PLANTA_COD_ELEMENTO[base.tipo]}" en Referencias.`); continue; }
+    const horm = PLANTA_HORMIGON[base.tipo];
+    if (!planHormigonesCatalogo().some((h) => h.codigo === horm)) { errores.push(`${nom}: falta el hormigón ${horm} en Referencias.`); continue; }
+    const eq = misma(norm, niv.nci);
+    const lin = state.lineas.find((l) => eq(l, "nivelFondo"));
+    if (lin) {
+      const rem = byId(state.remitos, lin.remitoId);
+      errores.push(`${nom}: ya se llenó${rem ? " el " + fmtFechaCorta(rem.fecha) : ""} (tiene remitos cargados).`);
+      continue;
+    }
+    const filas = state.planDia.filter((r) => eq(r, "cota"));
+    if (filas.some((r) => r.fecha === d.fecha)) { saltear.push(nom); continue; }
+    const otra = filas.find((r) => r.fecha !== d.fecha);
+    if (otra) {
+      errores.push(otra.cargado ? `${nom}: ya se llenó el ${fmtFechaCorta(otra.fecha)}.` :
+        `${nom}: ya está en el plan del ${fmtFechaCorta(otra.fecha)}. Sacalo de ese día antes de pasarlo al ${fmtFechaCorta(d.fecha)}.`);
+      continue;
+    }
+    nuevas.push({ base, niv, elem, nom, bombeado: !!it.b, m3: it.m != null ? it.m : null });
+  }
+  return { fecha: d.fecha, errores, nuevas, saltear };
+}
+
+function plantaMostrarImport() {
+  const imp = plantaImport;
+  if (!imp) return;
+  const lista = $("#impPlanLista");
+  lista.innerHTML = "";
+  const fmt = (n) => String(planR2(n)).replace(".", ",");
+  if (imp.errores.length) {
+    $("#impPlanResumen").textContent = `Hay ${imp.errores.length} problema${imp.errores.length === 1 ? "" : "s"} con el plan del ${fmtFechaCorta(imp.fecha)}. Corregilo${imp.errores.length === 1 ? "" : "s"} y volvé a pasarlo desde el Plan de llenado. No se cargó nada.`;
+    lista.appendChild(el("ul", { class: "imp-errores" }, imp.errores.map((x) => el("li", {}, x))));
+    $("#btnImpConfirmar").style.display = "none";
+  } else {
+    const m3 = imp.nuevas.reduce((s, x) => s + (x.m3 != null ? x.m3 : x.base.m3), 0);
+    $("#impPlanResumen").textContent = imp.nuevas.length
+      ? `Se van a cargar ${imp.nuevas.length} elemento${imp.nuevas.length === 1 ? "" : "s"} al plan del ${fmtFechaCorta(imp.fecha)} (${fmt(m3)} m³). Después solo queda cargar los remitos.`
+      : `Todo lo de ese día ya estaba en el plan del ${fmtFechaCorta(imp.fecha)}. No hay nada nuevo para cargar.`;
+    if (imp.nuevas.length) lista.appendChild(el("table", { class: "plan-resumen" }, [
+      el("tr", {}, ["Elemento", "m³", "Hormigón", "Colocación"].map((h) => el("th", {}, h))),
+      ...imp.nuevas.map((x) => el("tr", {}, [el("td", {}, x.nom), el("td", {}, fmt(x.m3 != null ? x.m3 : x.base.m3)), el("td", {}, PLANTA_HORMIGON[x.base.tipo]), el("td", {}, x.bombeado ? "Bomba" : "Grúa")])),
+    ]));
+    if (imp.saltear.length) lista.appendChild(el("p", { class: "hint" }, `Ya estaban en el plan de ese día y no se duplican: ${imp.saltear.join(", ")}.`));
+    $("#btnImpConfirmar").style.display = imp.nuevas.length ? "" : "none";
+  }
+  openModal("#modalImportarPlan");
+}
+
+async function plantaConfirmarImport() {
+  const imp = plantaImport;
+  if (!imp || imp.errores.length || !imp.nuevas.length) return closeModal("#modalImportarPlan");
+  const btn = $("#btnImpConfirmar");
+  btn.disabled = true;
+  try {
+    const delDia = state.planDia.filter((r) => r.fecha === imp.fecha);
+    let orden = delDia.length ? Math.max(...delDia.map((f) => f.orden)) : 0;
+    const filas = imp.nuevas.map((x) => plantaFilaNueva(x.base, x.niv, x.elem, imp.fecha, ++orden, x.bombeado, "Desde el plan de llenado", x.m3));
+    await DB.bulkPut("planDia", filas);
+    state.planDia.push(...filas);
+    state.planFecha = imp.fecha;
+    closeModal("#modalImportarPlan");
+    showTab("plan");
+    renderPlanDia();
+    toast(`Cargado al plan del ${fmtFechaCorta(imp.fecha)}: ${filas.length} elemento${filas.length === 1 ? "" : "s"}.`, "ok");
+  } catch (err) {
+    toast("No se pudo cargar al plan. Probá de nuevo.", "error");
+  } finally {
+    btn.disabled = false;
+    plantaImport = null;
+  }
 }
