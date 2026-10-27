@@ -1,5 +1,13 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.15.1
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.15.1
+------------------------------
+- Nuevo grupo de cuadrilla "Viga perimetral" (Referencias → Cuadrillas → Grupo). En el reporte
+  mensual (pantalla, PDF y Excel) aparecen sus m3 del mes y acumulados, y suman al total de la
+  obra, aparte de Torre y Basamento. Todavía no entra al cálculo de HH/m3 (sin personal definido).
+
 QUÉ CAMBIÓ EN LA VERSIÓN 2.15.0
 ------------------------------
 - Obra Summit: desde el Plan de llenado (botón "→ Plan" del día) se puede pasar todo
@@ -34,9 +42,6 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.13.8
 - Hora de salida de planta ("A obra") y hora de descarga obligatorias en remitos nuevos
   (carga manual y Plan > Remitos del día). Los remitos viejos no se tocan.
 
-QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
-------------------------------
-Versión 2.15.0
 
 QUÉ ES
 ------
@@ -78,7 +83,9 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.13.6
 - Obra Summit: en las pestañas Plan y Programación hay un link "Plan de llenado"
   que abre en otra pestaña https://joelgra08.github.io/plan-summit/ (plan día por
   día con vista 3D). Lo ven solo Administrador y Controller.
-=======
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
+------------------------------
 - Plan > Remitos del día: nueva columna "Asent. (cm)", obligatoria para calcular el reparto
   (se guarda en cada línea del remito). Lo escaneado deja asentamiento y horas en amarillo.
 - Excel de probetas con columnas: Fecha, N° remito, Tipo de hormigón, Asentamiento, N° de

@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.15.0";
+const APP_VERSION = "2.15.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -930,6 +930,7 @@ const GRUPOS_CUADRILLA = [
   { value: "BASAMENTO_I", label: "Basamento I" },
   { value: "BASAMENTO_II", label: "Basamento II" },
   { value: "BASAMENTO", label: "Basamento (general / histórico)" },
+  { value: "VIGA_PERIMETRAL", label: "Viga perimetral" },
 ];
 
 const ROLES_EQUIPO = [
@@ -2262,7 +2263,8 @@ function calcularAcumulado(yyyyMm) {
   const basII = volumenPorGrupo(rows, "BASAMENTO_II");
   const basGeneral = volumenPorGrupo(rows, "BASAMENTO");
   const basamento = basI + basII + basGeneral;
-  return { torre, basI, basII, basamento, total: torre + basamento };
+  const viga = volumenPorGrupo(rows, "VIGA_PERIMETRAL");
+  return { torre, basI, basII, basamento, viga, total: torre + basamento + viga };
 }
 
 function calcularResumenMensual(rows) {
@@ -2371,11 +2373,12 @@ function calcularProductividad(mes, rows) {
   const m3BasI = volumenPorGrupo(rows, "BASAMENTO_I");
   const m3BasII = volumenPorGrupo(rows, "BASAMENTO_II");
   const m3Basamento = m3BasI + m3BasII + volumenPorGrupo(rows, "BASAMENTO"); // unificado
-  const m3Directo = m3Torre + m3Basamento;
+  const m3Viga = volumenPorGrupo(rows, "VIGA_PERIMETRAL"); // solo m3 por ahora (sin HH)
+  const m3Directo = m3Torre + m3Basamento; // la viga no entra al HH/m3 hasta definir su personal
 
   return {
     p, personalTorre, personalBasamento, personalHerreros, personalIndirectos,
-    personalBasI, personalBasII, m3BasI, m3BasII,
+    personalBasI, personalBasII, m3BasI, m3BasII, m3Viga,
     diasLaborables, m3Torre, m3Basamento, m3Directo,
     // Indirectos: la mitad a Torre y la mitad a Basamento; dentro de Basamento, un cuarto a cada cuadrilla (I y II)
     hhm3BasIDirectos: m3BasI ? hhBasI / m3BasI : null,
@@ -2409,6 +2412,7 @@ function renderProductividadMensual(rows) {
   $("#pm_m3Basamento").textContent = fmtM3(prod.m3Basamento);
   $("#pm_m3BasI").textContent = fmtM3(prod.m3BasI);
   $("#pm_m3BasII").textContent = fmtM3(prod.m3BasII);
+  $("#pm_m3Viga").textContent = fmtM3(prod.m3Viga);
 
   $("#hh_general_directos").textContent = fmtHH(prod.hhm3GeneralDirectos);
   $("#hh_general_indirectos").textContent = fmtHH(prod.hhm3GeneralConIndirectos);
@@ -2502,6 +2506,7 @@ function renderResumenMensual() {
   $("#ac_basI").textContent = fmtM3(ac.basI);
   $("#ac_basII").textContent = fmtM3(ac.basII);
   $("#ac_bas").textContent = fmtM3(ac.basamento);
+  $("#ac_viga").textContent = fmtM3(ac.viga);
   $("#ac_total").textContent = fmtM3(ac.total);
 
   const rend = (contId, obj, mantenerOrden) => {
@@ -2938,7 +2943,7 @@ function exportarResumenMensualPDF() {
   doc.setFontSize(11);
   doc.text(`Acumulado de la obra hasta ${state.resumenMes}`, margin, y);
   doc.autoTable({ startY: y + 3, head: [["Zona", "M3 acumulados"]], theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin },
-    body: [["Torre", fmtM3(acPdf.torre) + " m3"], ["Basamento I", fmtM3(acPdf.basI) + " m3"], ["Basamento II", fmtM3(acPdf.basII) + " m3"], ["Basamento unificado", fmtM3(acPdf.basamento) + " m3"], ["Total (Torre + Basamento)", fmtM3(acPdf.total) + " m3"]] });
+    body: [["Torre", fmtM3(acPdf.torre) + " m3"], ["Basamento I", fmtM3(acPdf.basI) + " m3"], ["Basamento II", fmtM3(acPdf.basII) + " m3"], ["Basamento unificado", fmtM3(acPdf.basamento) + " m3"], ["Viga perimetral", fmtM3(acPdf.viga) + " m3"], ["Total (Torre + Basamento + Viga)", fmtM3(acPdf.total) + " m3"]] });
   y = doc.lastAutoTable.finalY + 8;
   if (y > 230) { doc.addPage(); y = margin; }
   doc.setFont(undefined, "bold");
@@ -2967,6 +2972,7 @@ function exportarResumenMensualPDF() {
     body: [
       ["Personal Torre / Basamento I / Basamento II / Basamento unificado / Herreros / Indirectos", `${prod.personalTorre} / ${prod.personalBasI} / ${prod.personalBasII} / ${prod.personalBasamento} / ${prod.personalHerreros} / ${prod.personalIndirectos}`],
       ["M3 Torre / Basamento I / Basamento II / Basamento unificado", `${fmtM3(prod.m3Torre)} / ${fmtM3(prod.m3BasI)} / ${fmtM3(prod.m3BasII)} / ${fmtM3(prod.m3Basamento)}`],
+      ["M3 Viga perimetral", fmtM3(prod.m3Viga)],
       ["Días laborables del mes", String(prod.diasLaborables)],
       ["HH/m3 general — directos / con indirectos", `${fmtHH(prod.hhm3GeneralDirectos)} / ${fmtHH(prod.hhm3GeneralConIndirectos)}`],
       ["HH/m3 Torre — directos / con indirectos", `${fmtHH(prod.hhm3TorreDirectos)} / ${fmtHH(prod.hhm3TorreConIndirectos)}`],
@@ -3057,7 +3063,8 @@ function exportarResumenMensualExcel() {
     ["Basamento I", calcularAcumulado(state.resumenMes).basI],
     ["Basamento II", calcularAcumulado(state.resumenMes).basII],
     ["Basamento unificado", calcularAcumulado(state.resumenMes).basamento],
-    ["Total (Torre + Basamento)", calcularAcumulado(state.resumenMes).total],
+    ["Viga perimetral", calcularAcumulado(state.resumenMes).viga],
+    ["Total (Torre + Basamento + Viga)", calcularAcumulado(state.resumenMes).total],
     [],
     ["M3 por tipo de hormigón"],
     ...ordenarTiposHormigon(r.porHormigon),
