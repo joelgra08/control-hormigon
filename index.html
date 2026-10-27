@@ -582,8 +582,8 @@
     <div class="panel">
       <h3 style="margin-top:0">Agregar al plan</h3>
       <div class="form-grid wide">
-        <div class="field"><label>Zona *</label>
-          <select id="plan_zona"><option value="TORRE">Torre</option><option value="BASAMENTO">Basamento I</option><option value="BASAMENTO_II">Basamento II</option></select></div>
+        <div class="field"><label>Cuadrilla *</label>
+          <select id="plan_cuadrilla"></select></div>
         <div class="field"><label>Elemento *</label><select id="plan_elemento"></select></div>
         <div class="field"><label>Nomenclatura</label><input type="text" id="plan_nomenclatura" placeholder="Ej: H08" /></div>
         <div class="field"><label>Cota de arranque</label><input type="text" id="plan_cota" inputmode="decimal" placeholder="Ej: +12,68" /></div>
@@ -608,7 +608,7 @@
       <div id="planVacio" class="empty-state">Todavía no cargaste nada en el plan de este día.</div>
       <div id="tablaPlanWrap" class="table-scroll cards-movil">
         <table id="tablaPlan">
-          <thead><tr><th>#</th><th>Zona</th><th>Elemento</th><th>Cota</th><th>m³</th><th>Hormigón</th><th>Bomba</th><th>Notas</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Cuadrilla</th><th>Elemento</th><th>Cota</th><th>m³</th><th>Hormigón</th><th>Bomba</th><th>Notas</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -618,15 +618,9 @@
     <div class="panel">
       <h3 style="margin-top:0">Remitos del día</h3>
       <p class="hint">Se reparten en el orden de la hora de descarga (o de llegada a obra). Podés tipearlos o pegar filas desde Excel con estas columnas: N° remito, hormigón, m³, hora a obra, hora descarga.</p>
-      <div class="row" style="gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <div class="field"><label>Proveedor</label><select id="planProveedor"></select></div>
-        <div class="field"><label>Cuadrilla Torre</label><select id="planCuadTorre"></select></div>
-        <div class="field"><label>Cuadrilla Basamento I</label><select id="planCuadBasamento"></select></div>
-        <div class="field"><label>Cuadrilla Basamento II</label><select id="planCuadBasamento2"></select></div>
-      </div>
       <div class="table-scroll" style="max-height:none">
         <table id="tablaPlanRemitos">
-          <thead><tr><th>#</th><th>N° remito</th><th>Hormigón</th><th>m³</th><th>Asent. (cm)</th><th>Hora a obra *</th><th>Hora descarga *</th><th>Bomba</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Proveedor</th><th>N° remito</th><th>Hormigón</th><th>m³</th><th>Asent. (cm)</th><th>Hora a obra *</th><th>Hora descarga *</th><th>Bomba</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>

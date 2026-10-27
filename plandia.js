@@ -21,7 +21,38 @@
    - Antes de guardar hay una vista previa donde se puede corregir.
    =========================================================== */
 
-const PLAN_ZONAS = { TORRE: "Torre", BASAMENTO: "Basamento I", BASAMENTO_II: "Basamento II" };
+const PLAN_ZONAS = { TORRE: "Torre", BASAMENTO: "Basamento I", BASAMENTO_II: "Basamento II" }; // solo filas viejas
+
+// Cuadrillas del plan (la cuadrilla se elige por fila; ya no hay "zona").
+function planCuadrillas() {
+  return state.catalogo.cuadrillas.slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es"));
+}
+function planCuadrillaPorGrupos(grupos) {
+  return planCuadrillas().find((c) => grupos.includes(c.grupo)) || null;
+}
+function planCuadrillaTorre() { return planCuadrillaPorGrupos(["TORRE"]); }
+// Filas viejas (anteriores al cambio) solo traen "zona": se traduce a la cuadrilla de ese grupo.
+function planCuadrillaDe(r) {
+  if (!r) return null;
+  if (r.cuadrillaId) return byId(state.catalogo.cuadrillas, r.cuadrillaId) || null;
+  if (r.zona === "TORRE") return planCuadrillaPorGrupos(["TORRE"]);
+  if (r.zona === "BASAMENTO") return planCuadrillaPorGrupos(["BASAMENTO_I", "BASAMENTO"]);
+  if (r.zona === "BASAMENTO_II") return planCuadrillaPorGrupos(["BASAMENTO_II"]);
+  return null;
+}
+function planNombreCuad(r) { const c = planCuadrillaDe(r); return c ? c.nombre : "—"; }
+// Texto de una cuadrilla (Excel) -> cuadrilla del catálogo.
+function planCuadrillaPorTexto(texto) {
+  const t = planNorm(texto);
+  if (!t) return null;
+  const lista = planCuadrillas();
+  const hit = lista.find((c) => planNorm(c.nombre) === t) || lista.find((c) => planNorm(c.nombre).includes(t) && t.length >= 4);
+  if (hit) return hit;
+  if (t.startsWith("torre")) return planCuadrillaPorGrupos(["TORRE"]);
+  if (/^basam\w*\s*(ii|2)\b/.test(t)) return planCuadrillaPorGrupos(["BASAMENTO_II"]);
+  if (t.startsWith("basam")) return planCuadrillaPorGrupos(["BASAMENTO_I", "BASAMENTO"]);
+  return null;
+}
 // Hormigón mínimo habitual por código de elemento (se puede cambiar en cada fila).
 const PLAN_HORMIGON_POR_ELEMENTO = { P: "C45", L: "C35", VL: "C35", CT: "C30", VR: "C30", CP: "C30", TD: "C30" };
 const PLAN_EPS = 0.0005;
@@ -170,24 +201,16 @@ function planCargarSelects() {
   planElementosCatalogo().forEach((e) => selE.appendChild(el("option", { value: e.id }, `${e.codigo} — ${e.nombre}`)));
   if (planElementosCatalogo().some((e) => e.id === actualE)) selE.value = actualE;
 
-  selectOptions($("#planProveedor"), state.catalogo.proveedores, (p) => p.nombre, {});
-  const cuadTorre = state.catalogo.cuadrillas.filter((c) => c.grupo === "TORRE");
-  const cuadBas = state.catalogo.cuadrillas.filter((c) => c.grupo === "BASAMENTO_I" || c.grupo === "BASAMENTO");
-  const cuadBas2 = state.catalogo.cuadrillas.filter((c) => c.grupo === "BASAMENTO_II");
-  const llenarCuad = (sel, lista, clave) => {
-    const prev = sel.value;
-    sel.innerHTML = "";
-    sel.appendChild(el("option", { value: "" }, lista.length ? "Seleccionar..." : "(no hay cuadrillas con este grupo)"));
-    lista.forEach((c) => sel.appendChild(el("option", { value: c.id }, c.nombre)));
-    let guardada = "";
-    try { guardada = localStorage.getItem(clave) || ""; } catch (e) { /* sin storage */ }
-    if (lista.some((c) => c.id === prev)) sel.value = prev;
-    else if (lista.some((c) => c.id === guardada)) sel.value = guardada;
-    else if (lista.length === 1) sel.value = lista[0].id;
-  };
-  llenarCuad($("#planCuadTorre"), cuadTorre, "planCuadTorre");
-  llenarCuad($("#planCuadBasamento"), cuadBas, "planCuadBasamento");
-  llenarCuad($("#planCuadBasamento2"), cuadBas2, "planCuadBasamento2");
+  const selC = $("#plan_cuadrilla");
+  const prevC = selC.value;
+  selC.innerHTML = "";
+  planCuadrillas().forEach((c) => selC.appendChild(el("option", { value: c.id }, c.nombre)));
+  let guardadaC = "";
+  try { guardadaC = localStorage.getItem("planCuadrilla") || ""; } catch (e) { /* sin storage */ }
+  const tor = planCuadrillaTorre();
+  if (planCuadrillas().some((c) => c.id === prevC)) selC.value = prevC;
+  else if (planCuadrillas().some((c) => c.id === guardadaC)) selC.value = guardadaC;
+  else if (tor) selC.value = tor.id;
 }
 
 function planAplicarHormigonDefault() {
@@ -229,14 +252,14 @@ function planResetForm() {
   planUI.editandoId = null;
   planUI.m3Manual = false;
   ["plan_diamCm", "plan_largoCm", "plan_anchoCm", "plan_areaM2", "plan_alturaCm"].forEach((id) => { $("#" + id).value = ""; });
-  const zona = $("#plan_zona").value;
+  const cuadSel = $("#plan_cuadrilla").value;
   $("#plan_elemento").value = "";
   $("#plan_nomenclatura").value = "";
   $("#plan_cota").value = "";
   $("#plan_m3").value = "";
   $("#plan_bomba").checked = false;
   $("#plan_obs").value = "";
-  $("#plan_zona").value = zona;
+  $("#plan_cuadrilla").value = cuadSel;
   $("#btnPlanAgregar").textContent = "+ Agregar al plan";
   $("#btnPlanCancelar").style.display = "none";
 }
@@ -258,7 +281,7 @@ async function planGuardarFila() {
     obraId: state.obraId,
     fecha,
     orden: existente ? existente.orden : (filas.length ? Math.max(...filas.map((f) => f.orden)) + 1 : 1),
-    zona: $("#plan_zona").value,
+    cuadrillaId: $("#plan_cuadrilla").value || null,
     elementoId,
     nomenclatura: $("#plan_nomenclatura").value.trim(),
     cota: planNum($("#plan_cota").value),
@@ -272,6 +295,8 @@ async function planGuardarFila() {
     observaciones: $("#plan_obs").value.trim(),
     cargado: false,
   };
+  if (!fila.cuadrillaId) return toast("Elegí la cuadrilla", "error");
+  try { localStorage.setItem("planCuadrilla", fila.cuadrillaId); } catch (e) { /* sin storage */ }
   try { await DB.put("planDia", fila); } catch (e) { return; }
   const idx = state.planDia.findIndex((r) => r.id === fila.id);
   if (idx >= 0) state.planDia[idx] = fila; else state.planDia.push(fila);
@@ -283,7 +308,7 @@ async function planGuardarFila() {
 
 function planEditarFila(r) {
   planUI.editandoId = r.id;
-  $("#plan_zona").value = r.zona;
+  const cd = planCuadrillaDe(r); $("#plan_cuadrilla").value = cd ? cd.id : "";
   $("#plan_elemento").value = r.elementoId || "";
   $("#plan_nomenclatura").value = r.nomenclatura || "";
   $("#plan_cota").value = r.cota ?? "";
@@ -352,7 +377,17 @@ function renderPlanDia() {
   filas.forEach((r, i) => {
     const tr = el("tr", r.cargado ? { class: "plan-cargado" } : {});
     tr.appendChild(el("td", {}, String(i + 1)));
-    tr.appendChild(el("td", {}, PLAN_ZONAS[r.zona] || r.zona));
+    const selFila = el("select", { style: "min-width:120px" }, planCuadrillas().map((c) => el("option", { value: c.id }, c.nombre)));
+    const cdFila = planCuadrillaDe(r);
+    selFila.value = cdFila ? cdFila.id : "";
+    selFila.addEventListener("change", async () => {
+      const nueva = { ...r, cuadrillaId: selFila.value };
+      try { await DB.put("planDia", nueva); } catch (e) { selFila.value = cdFila ? cdFila.id : ""; return; }
+      const k = state.planDia.findIndex((x) => x.id === r.id);
+      if (k >= 0) state.planDia[k] = nueva;
+      toast("Cuadrilla actualizada", "ok");
+    });
+    tr.appendChild(el("td", {}, selFila));
     const dimTxt = [r.largoCm, r.anchoCm, r.alturaCm].some((x) => x != null)
       ? [r.largoCm, r.anchoCm, r.alturaCm].map((x) => (x == null ? "?" : String(x).replace(".", ","))).join("×") + " cm"
       : (r.areaM2 != null ? `${String(r.areaM2).replace(".", ",")} m²` : "");
@@ -420,16 +455,16 @@ function renderPlanGuardados() {
 // ---------------------------------------------------------------
 function planDescargarModelo() {
   const aoa = [
-    ["Zona", "Elemento", "Nomenclatura", "Cota de arranque", "Largo (cm)", "Ancho (cm)", "Diámetro (cm)", "Altura (cm)", "m3", "Hormigón mínimo", "Bomba", "Observaciones"],
-    ["Torre", "P", "H08", "+12,68", 40, 100, "", 310, "", "C45", "Sí", ""],
-    ["Torre", "P", "H09", "+12,68", "", "", "", "", 2.08, "C45", "Sí", ""],
-    ["Torre", "P", "R12 (redondo)", "+12,68", "", "", 50, 270, "", "C45", "Sí", "Pilar redondo Ø50"],
-    ["Torre", "VR", "R101", "+12,00", 20, 50, "", 400, "", "C30", "No", ""],
-    ["Basamento I", "L", "Losa sobre N1", "+9,30", "", "", "", "", 38.5, "C35", "Sí", ""],
+    ["Cuadrilla", "Elemento", "Nomenclatura", "Cota de arranque", "Largo (cm)", "Ancho (cm)", "Diámetro (cm)", "Altura (cm)", "m3", "Hormigón mínimo", "Bomba", "Observaciones"],
+    ["Cuadrilla Torre", "P", "H08", "+12,68", 40, 100, "", 310, "", "C45", "Sí", ""],
+    ["Cuadrilla Torre", "P", "H09", "+12,68", "", "", "", "", 2.08, "C45", "Sí", ""],
+    ["Cuadrilla Torre", "P", "R12 (redondo)", "+12,68", "", "", 50, 270, "", "C45", "Sí", "Pilar redondo Ø50"],
+    ["Cuadrilla Torre", "VR", "R101", "+12,00", 20, 50, "", 400, "", "C30", "No", ""],
+    ["Basamento I (Rodrigo)", "L", "Losa sobre N1", "+9,30", "", "", "", "", 38.5, "C35", "Sí", ""],
   ];
   const ayuda = [
     ["Cómo completar"],
-    ["Zona: Torre, Basamento I o Basamento II (si escribís solo \"Basamento\" se toma como Basamento I)."],
+    ["Cuadrilla: el nombre tal como está en Referencias → Cuadrillas (si lo dejás vacío se usa la de Torre)."],
     ["Elemento: código del catálogo (P, L, VL, VR, CT, CP, TD, HL...) o su nombre."],
     ["Nomenclatura: como la usás hoy (H08, Losa N106 S1, etc.)."],
     ["Cota de arranque: con o sin signo, coma o punto (+12,68)."],
@@ -468,7 +503,7 @@ function planLeerMatriz(matriz) {
   const cab = matriz[h].map(norm);
   const col = (pred) => cab.findIndex(pred);
   const c = {
-    zona: col((x) => x === "zona"),
+    zona: col((x) => x === "zona" || x === "cuadrilla"),
     elemento: col((x) => x === "elemento"),
     nomen: col((x) => x.startsWith("nomenclatura")),
     cota: col((x) => x.startsWith("cota")),
@@ -500,12 +535,8 @@ function planLeerMatriz(matriz) {
     let m3 = planNum(get("m3"));
     if ((m3 === null || m3 <= 0) && areaM2 > 0 && alturaCm > 0) m3 = planR2(areaM2 * (alturaCm / 100));
     if (m3 === null || m3 <= 0) { errores.push(`Fila ${n}: faltan los m³ (o Largo, Ancho y Altura).`); continue; }
-    const z = planNorm(get("zona"));
-    // "Basamento" solo = Basamento I; también acepta "Basamento 2", "Basamento II", "B2", etc.
-    const zona = z.startsWith("torre") ? "TORRE"
-      : /^basam\w*\s*(ii|2)\b/.test(z) ? "BASAMENTO_II"
-      : z.startsWith("basam") ? "BASAMENTO" : null;
-    if (!zona) { errores.push(`Fila ${n}: la zona tiene que ser Torre, Basamento I o Basamento II.`); continue; }
+    const cuadX = get("zona") ? planCuadrillaPorTexto(get("zona")) : planCuadrillaTorre();
+    if (!cuadX) { errores.push(`Fila ${n}: no reconozco la cuadrilla "${get("zona")}". Tiene que ser una de Referencias → Cuadrillas.`); continue; }
     let horm = String(get("horm") || "").trim().toUpperCase();
     if (!horm) horm = PLAN_HORMIGON_POR_ELEMENTO[(el_.codigo || "").toUpperCase()] || "";
     if (!horm) { errores.push(`Fila ${n}: falta el hormigón mínimo de ${el_.codigo}.`); continue; }
@@ -513,7 +544,7 @@ function planLeerMatriz(matriz) {
     const b = planNorm(get("bomba"));
     filas.push({
       elementoId: el_.id,
-      zona,
+      cuadrillaId: cuadX.id,
       nomenclatura: String(get("nomen") ?? "").trim(),
       cota: planNum(get("cota")),
       largoCm, anchoCm, alturaCm, areaM2,
@@ -560,10 +591,19 @@ async function planImportarArchivo(file) {
 // ---------------------------------------------------------------
 //  Remitos del día (carga rápida) y reparto
 // ---------------------------------------------------------------
+function planProveedorDefault(ultimo) {
+  const provs = state.catalogo.proveedores;
+  if (ultimo && ultimo.proveedorId) return ultimo.proveedorId;
+  let g = "";
+  try { g = localStorage.getItem("planProveedor") || ""; } catch (e) { /* sin storage */ }
+  if (provs.some((x) => x.id === g)) return g;
+  return provs.length === 1 ? provs[0].id : "";
+}
+
 function planFilaRemitoVacia() {
   const hs = planHormigonesCatalogo();
   const ultimo = planUI.remitos[planUI.remitos.length - 1];
-  return { nro: "", hormigon: ultimo ? ultimo.hormigon : (hs[hs.length - 1]?.codigo || ""), m3: "", asentamiento: "", horaAObra: "", horaDescarga: "" };
+  return { nro: "", hormigon: ultimo ? ultimo.hormigon : (hs[hs.length - 1]?.codigo || ""), m3: "", asentamiento: "", horaAObra: "", horaDescarga: "", proveedorId: planProveedorDefault(ultimo) };
 }
 
 function renderPlanRemitosForm() {
@@ -580,6 +620,10 @@ function renderPlanRemitosForm() {
       return el("td", {}, e);
     };
     tr.appendChild(el("td", {}, String(i + 1)));
+    const selP = el("select", { style: "width:130px" }, [el("option", { value: "" }, "Proveedor...")].concat(state.catalogo.proveedores.map((x) => el("option", { value: x.id }, x.nombre))));
+    selP.value = r.proveedorId || "";
+    selP.addEventListener("change", () => { r.proveedorId = selP.value; try { localStorage.setItem("planProveedor", selP.value); } catch (e) { /* sin storage */ } });
+    tr.appendChild(el("td", {}, selP));
     tr.appendChild(inp("nro", "text", "110px", { placeholder: "N° remito" }));
     const sel = el("select", { style: "width:90px" }, hs.map((h) => el("option", { value: h.codigo }, h.codigo)));
     sel.value = r.hormigon;
@@ -618,7 +662,7 @@ function planPegarRemitos() {
     if (!hs.includes(horm)) return errores.push(`Fila ${i + 1}: hormigón "${f[1] || ""}" no válido`);
     if (m3 === null || m3 <= 0) return errores.push(`Fila ${i + 1}: faltan los m³`);
     const hora = (v) => { const m = /^(\d{1,2})[:.](\d{2})/.exec((v || "").trim()); return m ? `${m[1].padStart(2, "0")}:${m[2]}` : ""; };
-    nuevos.push({ nro: (f[0] || "").trim(), hormigon: horm, m3: String(m3), horaAObra: hora(f[3]), horaDescarga: hora(f[4]) });
+    nuevos.push({ proveedorId: planProveedorDefault(planUI.remitos[planUI.remitos.length - 1]), nro: (f[0] || "").trim(), hormigon: horm, m3: String(m3), horaAObra: hora(f[3]), horaDescarga: hora(f[4]) });
   });
   if (errores.length) toast(errores.slice(0, 3).join(" · "), "error");
   if (nuevos.length === 0) return;
@@ -639,15 +683,16 @@ function planCalcular() {
   const lista = remitos.map((r, i) => {
     const nro = (r.nro || "").trim();
     if (!nro) errores.push(`Remito ${i + 1}: falta el N°`);
-    else if (vistos.has(nro.toLowerCase())) errores.push(`El remito ${nro} está repetido en la lista`);
-    vistos.add(nro.toLowerCase());
+    else if (vistos.has(`${r.proveedorId}|${nro.toLowerCase()}`)) errores.push(`El remito ${nro} está repetido en la lista`);
+    vistos.add(`${r.proveedorId}|${nro.toLowerCase()}`);
+    if (!r.proveedorId) errores.push(`Remito ${nro || i + 1}: falta el proveedor`);
     const m3 = planNum(r.m3);
     if (m3 === null || m3 <= 0) errores.push(`Remito ${nro || i + 1}: faltan los m³`);
     if (!r.horaAObra) errores.push(`Remito ${nro || i + 1}: falta la hora de salida de planta`);
     if (!r.horaDescarga) errores.push(`Remito ${nro || i + 1}: falta la hora de descarga`);
     const asent = planNum(r.asentamiento);
     if (asent === null || asent <= 0) errores.push(`Remito ${nro || i + 1}: falta el asentamiento (cm)`);
-    return { id: `pr${i}`, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), asentamiento: asent, horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo };
+    return { id: `pr${i}`, proveedorId: r.proveedorId, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), asentamiento: asent, horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo };
   });
   if (!planElementoDesperdicio()) errores.push('No hay un elemento "Desperdicio" en Referencias → Elementos');
   if (errores.length) return toast(errores.slice(0, 3).join(" · "), "error");
@@ -666,7 +711,7 @@ function planCalcular() {
 
 function planOpcionesElemento(sel, valor) {
   sel.innerHTML = "";
-  planFilasDelDia().forEach((p) => sel.appendChild(el("option", { value: p.id }, `${PLAN_ZONAS[p.zona] || ""} · ${planNombreFila(p)} (${p.hormigon})`)));
+  planFilasDelDia().forEach((p) => sel.appendChild(el("option", { value: p.id }, `${planNombreCuad(p)} · ${planNombreFila(p)} (${p.hormigon})`)));
   sel.appendChild(el("option", { value: "" }, "Desperdicio"));
   sel.value = valor === null || valor === undefined ? "" : valor;
 }
@@ -734,7 +779,7 @@ function renderPlanPreview() {
     const estado = Math.abs(dif) < 0.005 ? "✓" : dif > 0 ? `Faltan ${fmtM3(dif)} m³` : `+${fmtM3(-dif)} m³ de más`;
     if (dif > 0.005) hayFalta = true;
     tb.appendChild(el("tr", {}, [
-      el("td", {}, `${PLAN_ZONAS[p.zona] || ""} · ${planNombreFila(p)}`),
+      el("td", {}, `${planNombreCuad(p)} · ${planNombreFila(p)}`),
       el("td", { style: "text-align:right" }, fmtM3(p.m3)),
       el("td", { style: "text-align:right" }, fmtM3(a)),
       el("td", { style: dif > 0.005 ? "color:#b3413a;font-weight:600" : "" }, estado),
@@ -759,22 +804,16 @@ async function planGuardarRemitos() {
   if (!puedeAgregar()) return;
   const pv = planUI.preview;
   if (!pv) return;
-  const proveedorId = $("#planProveedor").value;
-  if (!proveedorId) return toast("Elegí el proveedor", "error");
+  if (pv.remitos.some((r) => !r.proveedorId)) return toast("Falta elegir el proveedor de algún remito", "error");
   const desp = planElementoDesperdicio();
   if (!desp) return toast('Falta el elemento "Desperdicio" en Referencias', "error");
   const plan = planFilasDelDia();
-  const cuad = { TORRE: $("#planCuadTorre").value, BASAMENTO: $("#planCuadBasamento").value, BASAMENTO_II: $("#planCuadBasamento2").value };
-  const zonasUsadas = new Set();
-  pv.remitos.forEach((r) => r.lineas.forEach((l) => { const p = plan.find((x) => x.id === l.planId); if (p) zonasUsadas.add(p.zona); }));
-  for (const z of zonasUsadas) if (!cuad[z]) return toast(`Elegí la cuadrilla de ${PLAN_ZONAS[z]}`, "error");
-  try {
-    localStorage.setItem("planCuadTorre", cuad.TORRE || "");
-    localStorage.setItem("planCuadBasamento", cuad.BASAMENTO || "");
-    localStorage.setItem("planCuadBasamento2", cuad.BASAMENTO_II || "");
-  } catch (e) { /* sin storage */ }
+  for (const r of pv.remitos) for (const l of r.lineas) {
+    const pf = plan.find((x) => x.id === l.planId);
+    if (pf && !planCuadrillaDe(pf)) return toast(`Falta la cuadrilla en "${planNombreFila(pf)}"`, "error");
+  }
 
-  const duplicados = pv.remitos.filter((r) => planDuplicadoExistente(r.nro, proveedorId)).map((r) => r.nro);
+  const duplicados = pv.remitos.filter((r) => planDuplicadoExistente(r.nro, r.proveedorId)).map((r) => r.nro);
   if (duplicados.length) return toast(`Ya existen remitos con N° ${duplicados.slice(0, 5).join(", ")} para este proveedor`, "error");
 
   const remitosDb = [], lineasDb = [];
@@ -783,7 +822,7 @@ async function planGuardarRemitos() {
     if (!horm) return toast(`No encuentro el hormigón ${r.hormigon} en Referencias`, "error");
     const remitoId = uid("rem");
     remitosDb.push({
-      id: remitoId, obraId: state.obraId, fecha: pv.fecha, proveedorId, hormigonId: horm.id,
+      id: remitoId, obraId: state.obraId, fecha: pv.fecha, proveedorId: r.proveedorId, hormigonId: horm.id,
       remitoNro: r.nro, m3Remito: r.m3, unidadMovil: "", horaAObra: r.horaAObra || "", horaEnObra: "",
       horaDescarga: r.horaDescarga || "", horaFinDescarga: "", probeta1: null, probeta2: null, probeta3: null,
     });
@@ -798,7 +837,7 @@ async function planGuardarRemitos() {
         largoCm: p ? p.largoCm ?? null : null, anchoCm: p ? p.anchoCm ?? null : null,
         alturaCm: p ? p.alturaCm ?? null : null, areaM2: p ? p.areaM2 ?? null : null,
         volumen: planR2(planNum(l.m3)),
-        cuadrillaId: p ? cuad[p.zona] : null,
+        cuadrillaId: p ? (planCuadrillaDe(p) || {}).id || null : null,
         bombeado: !!r.bombeo || (p ? !!p.bombeado : false),
         colocacionId: null,
         observaciones: ["Plan del día", l.nota, p && p.observaciones].filter(Boolean).join(" · "),

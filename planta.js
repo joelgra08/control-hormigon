@@ -193,6 +193,7 @@ async function plantaClick(e) {
   if (!elem) return toast(`Falta el elemento "${codigoEl}" en Referencias`, "error");
   const horm = PLANTA_HORMIGON[e.tipo];
   if (!planHormigonesCatalogo().some((h) => h.codigo === horm)) return toast(`Falta el hormigón ${horm} en Referencias`, "error");
+  if (!planCuadrillaTorre()) return toast("Falta una cuadrilla con grupo Torre en Referencias → Cuadrillas", "error");
   const filas = planFilasDelDia();
   let area = null;
   if (e.alturaCm) area = Math.round((e.m3 / (e.alturaCm / 100)) * 10000) / 10000;
@@ -201,7 +202,7 @@ async function plantaClick(e) {
     obraId: state.obraId,
     fecha: state.planFecha,
     orden: filas.length ? Math.max(...filas.map((f) => f.orden)) + 1 : 1,
-    zona: "TORRE",
+    cuadrillaId: (planCuadrillaTorre() || {}).id || null,
     elementoId: elem.id,
     nomenclatura: plantaNomenclatura(e, niv),
     cota: niv.nci,

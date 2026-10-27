@@ -1,5 +1,15 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+QUÉ CAMBIÓ EN LA VERSIÓN 2.14.0
+------------------------------
+- Plan: "Zona" pasa a ser "Cuadrilla" (lista de Referencias → Cuadrillas) y se elige fila por
+  fila; se puede cambiar desde el listado. Lo marcado en el plano usa la cuadrilla de Torre.
+- Remitos del día: desaparecen las 3 cuadrillas del cabezal; el proveedor se elige remito por
+  remito (recuerda el último). Al guardar, cada línea toma la cuadrilla de su fila del plan.
+- Importar Excel: la columna "Zona" ahora es "Cuadrilla" (acepta también "zona").
+- REQUIERE correr supabase/20_plan_cuadrilla.sql una vez (agrega cuadrilla_id al plan y migra
+  las filas viejas de zona a cuadrilla).
+
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.10
 -------------------------------
 - Pedidos de hierro: el detalle desplegable ahora muestra las observaciones del pedido
@@ -17,7 +27,7 @@ QUÉ CAMBIÓ EN LA VERSIÓN 2.13.8
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.13.7
 ------------------------------
-Versión 2.13.10
+Versión 2.14.0
 
 QUÉ ES
 ------

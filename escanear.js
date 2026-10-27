@@ -237,6 +237,7 @@ async function escEscanearArchivos(files) {
         try { await escReintentar(worker, canvas, data.words, r); } catch (e) { console.warn("[Escanear] 2ª pasada", e); }
       }
       const fila = {
+        proveedorId: planProveedorDefault(planUI.remitos[planUI.remitos.length - 1]),
         nro: r.nro, hormigon: r.hormigon || (planUI.remitos[planUI.remitos.length - 1] || {}).hormigon || hs[hs.length - 1] || "",
         m3: r.m3, asentamiento: "", horaAObra: "", horaDescarga: "", bombeo: !!r.bombeo,
         dudas: { ...(r.dudas || {}), asentamiento: true, horaAObra: true, horaDescarga: true },
