@@ -1,6 +1,14 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
-Versión 2.15.1
+Versión 2.15.2
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.15.2
+------------------------------
+- Plano de la planta: niveles 110 a 126 (NCI = 24,00 + (nivel - 107) x 2,88; piso = nivel - 100),
+  los mismos que tiene el Plan de llenado. Así se pueden pasar todos los días al plan del día.
+- Niveles 110 y 117 (retranqueo): el Sector 2 cambia a 62,93 m3 (esquina retranqueada y hueco de
+  la escalera nueva, 7,94 m3 menos). La escalera nueva (1,74 m3, C35) aparece en los niveles 109
+  y 116, junto a la escalera de siempre, porque cuelga del piso de abajo.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.15.1
 ------------------------------

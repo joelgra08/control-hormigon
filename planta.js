@@ -20,8 +20,38 @@ const PLANTA_NIVELES = [
   { nivel: 106, nci: 21.12, piso: 6 },
   { nivel: 107, nci: 24.00, piso: 7 },
   { nivel: 108, nci: 26.88, piso: 8 },
-  { nivel: 109, nci: 29.76, piso: 9 },
+  { nivel: 109, nci: 29.76, piso: 9, escNueva: true },
+  { nivel: 110, nci: 32.64, piso: 10, ret: true },
+  { nivel: 111, nci: 35.52, piso: 11 },
+  { nivel: 112, nci: 38.40, piso: 12 },
+  { nivel: 113, nci: 41.28, piso: 13 },
+  { nivel: 114, nci: 44.16, piso: 14 },
+  { nivel: 115, nci: 47.04, piso: 15 },
+  { nivel: 116, nci: 49.92, piso: 16, escNueva: true },
+  { nivel: 117, nci: 52.80, piso: 17, ret: true },
+  { nivel: 118, nci: 55.68, piso: 18 },
+  { nivel: 119, nci: 58.56, piso: 19 },
+  { nivel: 120, nci: 61.44, piso: 20 },
+  { nivel: 121, nci: 64.32, piso: 21 },
+  { nivel: 122, nci: 67.20, piso: 22 },
+  { nivel: 123, nci: 70.08, piso: 23 },
+  { nivel: 124, nci: 72.96, piso: 24 },
+  { nivel: 125, nci: 75.84, piso: 25 },
+  { nivel: 126, nci: 78.72, piso: 26 },
 ];
+// Variantes de la planta tipo (NCI = 24,00 + (nivel - 107) x 2,88):
+//  ret: losa N110 y N117 -> Sector 2 con la esquina retranqueada y el hueco de la escalera nueva
+//       (62,93 m3 en vez de 70,87).
+//  escNueva: la escalera nueva (1,74 m3, C35) cuelga del piso de abajo (N109 y N116), igual que
+//       la escalera de siempre, y se llena junto con la losa S2 de N110 y N117.
+const PLANTA_S2_RET = {
+  m3: 62.93,
+  poly: [
+    [[325,118],[316,119],[316,128],[290,128],[290,185],[127.5,185],[127,250],[132,264],[129,320],[104,320],[103,489],[470,489],[473,467],[494,464],[496,456],[494,91],[326,91]],
+    [[214,268],[182,268],[182,240],[214,240]],
+  ],
+};
+const PLANTA_ESC_NUEVA = { id: "e_escnueva", codigo: "Escalera nueva", tipo: "E", desc: "Escalera nueva con su viga y pilar", m3: 1.74, poly: [[162,238],[212,238],[212,298],[162,298]] };
 
 // Hormigón mínimo sugerido por tipo (se puede cambiar después en la tabla del plan).
 const PLANTA_HORMIGON = { P: "C45", PA: "C45", L: "C35", E: "C35" };
@@ -73,7 +103,13 @@ function plantaEstado(e, niv) {
 // Una figura puede ser un polígono [[x,y],...] o varios (lista de polígonos).
 function plantaPolys(e) { return Array.isArray(e.poly[0][0]) ? e.poly : [e.poly]; }
 
-function plantaTodos() { return PLANTA_DATA.SL.concat(PLANTA_DATA.E); }
+// Elementos del plano de un nivel (la planta tipo + las variantes de ese nivel).
+function plantaTodos(niv) {
+  const n = niv || plantaNivelActual();
+  const sl = PLANTA_DATA.SL.map((s) => (n.ret && s.codigo === "Sector 2" ? { ...s, m3: PLANTA_S2_RET.m3, poly: PLANTA_S2_RET.poly, desc: "Losa con retranqueo y hueco de escalera nueva" } : s));
+  const e = n.escNueva ? PLANTA_DATA.E.concat([PLANTA_ESC_NUEVA]) : PLANTA_DATA.E;
+  return sl.concat(e);
+}
 
 function plantaTitulo(e, niv, est) {
   const dim = e.desc ? ` (${e.desc})` : "";
@@ -142,13 +178,14 @@ function plantaDibujar() {
   const niv = plantaNivelActual();
   g.innerHTML = "";
   let enPlan = 0, m3Plan = 0;
-  plantaTodos().forEach((e) => {
+  plantaTodos(niv).forEach((e) => {
     const est = plantaEstado(e, niv);
     if (est.estado === "hoy" || est.estado === "cargado") { enPlan++; m3Plan += est.fila.m3; }
     const p = document.createElementNS(NS, "path");
     p.setAttribute("d", plantaPolys(e).map((pl) => "M" + pl.map((q) => q.join(",")).join(" L") + " Z").join(" "));
     p.setAttribute("class", `pl-el pl-${est.estado} pl-t${e.tipo}`);
     p.setAttribute("data-id", e.id);
+    p.setAttribute("fill-rule", "evenodd");
     const t = document.createElementNS(NS, "title");
     t.textContent = plantaTitulo(e, niv, est);
     p.appendChild(t);
@@ -161,7 +198,7 @@ function plantaDibujar() {
     const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
     const tx = document.createElementNS(NS, "text");
-    const corto = e.tipo === "E" ? "Escalera" : e.tipo === "PA" ? e.codigo.split(" ")[0] + (e.id === "pa_esc" ? " núcleo" : e.id === "pa_esct" ? " pata" : "") : e.codigo;
+    const corto = e.id === "e_escnueva" ? "Esc. nueva" : e.tipo === "E" ? "Escalera" : e.tipo === "PA" ? e.codigo.split(" ")[0] + (e.id === "pa_esc" ? " núcleo" : e.id === "pa_esct" ? " pata" : "") : e.codigo;
     tx.textContent = corto;
     tx.setAttribute("x", e.tipo === "P" ? Math.max(...xs) + 3 : e.id === "pa_esc" ? Math.max(...xs) + 3 : cx);
     tx.setAttribute("y", e.tipo === "P" ? cy : e.tipo === "L" ? cy + 40 : e.id === "pa_esc" ? cy + 30 : cy);
@@ -322,7 +359,7 @@ function plantaRevisarImport(d) {
   if (!planCuadrillaTorre()) errores.push("Falta una cuadrilla con grupo Torre en Referencias → Cuadrillas.");
   for (const it of d.items) {
     const niv = PLANTA_NIVELES.find((n) => n.nivel === it.n);
-    const base = it.t ? { tipo: it.t, codigo: it.nom || it.c, m3: it.m || 0 } : plantaTodos().find((x) => x.codigo === it.c);
+    const base = it.t ? { tipo: it.t, codigo: it.nom || it.c, m3: it.m || 0 } : plantaTodos(niv).find((x) => x.codigo === it.c);
     const nombre = `N${it.n} ${it.nom || it.c}`;
     if (!base) { errores.push(`${nombre}: no está en el plano de la app.`); continue; }
     if (!niv) { errores.push(`${nombre}: falta el nivel N${it.n} en el plano de la app. Cargalo primero.`); continue; }
