@@ -1,6 +1,11 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
-Versión 2.15.2
+Versión 2.15.3
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.15.3
+------------------------------
+- Plano de la planta: desde el nivel 109 los pilares se cargan en C35 (antes C45). Pantallas,
+  losas y escaleras no cambian. Lo ya cargado al plan no se modifica.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.15.2
 ------------------------------

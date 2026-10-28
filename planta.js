@@ -55,6 +55,10 @@ const PLANTA_ESC_NUEVA = { id: "e_escnueva", codigo: "Escalera nueva", tipo: "E"
 
 // Hormigón mínimo sugerido por tipo (se puede cambiar después en la tabla del plan).
 const PLANTA_HORMIGON = { P: "C45", PA: "C45", L: "C35", E: "C35" };
+// Desde el nivel 109 los pilares son C35 (pantallas, losas y escaleras no cambian).
+function plantaHormigon(tipo, niv) {
+  return tipo === "P" && niv && niv.nivel >= 109 ? "C35" : PLANTA_HORMIGON[tipo];
+}
 const PLANTA_COD_ELEMENTO = { P: "P", PA: "PA", L: "L", E: "E" };
 const PLANTA_ESCALA = 72 / 110; // px a 110 dpi -> unidades del SVG (puntos)
 
@@ -230,7 +234,7 @@ function plantaFilaNueva(e, niv, elem, fecha, orden, bombeado, obs, m3) {
     areaM2: area,
     alturaCm: e.alturaCm || null,
     m3: planR2(vol),
-    hormigon: PLANTA_HORMIGON[e.tipo],
+    hormigon: plantaHormigon(e.tipo, niv),
     bombeado: !!bombeado,
     observaciones: obs,
     cargado: false,
@@ -254,7 +258,7 @@ async function plantaClick(e) {
   const codigoEl = PLANTA_COD_ELEMENTO[e.tipo];
   const elem = state.catalogo.elementos.find((x) => (x.codigo || "").toUpperCase() === codigoEl);
   if (!elem) return toast(`Falta el elemento "${codigoEl}" en Referencias`, "error");
-  const horm = PLANTA_HORMIGON[e.tipo];
+  const horm = plantaHormigon(e.tipo, niv);
   if (!planHormigonesCatalogo().some((h) => h.codigo === horm)) return toast(`Falta el hormigón ${horm} en Referencias`, "error");
   if (!planCuadrillaTorre()) return toast("Falta una cuadrilla con grupo Torre en Referencias → Cuadrillas", "error");
   const filas = planFilasDelDia();
@@ -369,7 +373,7 @@ function plantaRevisarImport(d) {
     vistos.add(clave);
     const elem = elemCat(PLANTA_COD_ELEMENTO[base.tipo]);
     if (!elem) { errores.push(`${nom}: falta el elemento "${PLANTA_COD_ELEMENTO[base.tipo]}" en Referencias.`); continue; }
-    const horm = PLANTA_HORMIGON[base.tipo];
+    const horm = plantaHormigon(base.tipo, niv);
     if (!planHormigonesCatalogo().some((h) => h.codigo === horm)) { errores.push(`${nom}: falta el hormigón ${horm} en Referencias.`); continue; }
     const eq = misma(norm, niv.nci);
     const lin = state.lineas.find((l) => eq(l, "nivelFondo"));
@@ -408,7 +412,7 @@ function plantaMostrarImport() {
       : `Todo lo de ese día ya estaba en el plan del ${fmtFechaCorta(imp.fecha)}. No hay nada nuevo para cargar.`;
     if (imp.nuevas.length) lista.appendChild(el("table", { class: "plan-resumen" }, [
       el("tr", {}, ["Elemento", "m³", "Hormigón", "Colocación"].map((h) => el("th", {}, h))),
-      ...imp.nuevas.map((x) => el("tr", {}, [el("td", {}, x.nom), el("td", {}, fmt(x.m3 != null ? x.m3 : x.base.m3)), el("td", {}, PLANTA_HORMIGON[x.base.tipo]), el("td", {}, x.bombeado ? "Bomba" : "Grúa")])),
+      ...imp.nuevas.map((x) => el("tr", {}, [el("td", {}, x.nom), el("td", {}, fmt(x.m3 != null ? x.m3 : x.base.m3)), el("td", {}, plantaHormigon(x.base.tipo, x.niv)), el("td", {}, x.bombeado ? "Bomba" : "Grúa")])),
     ]));
     if (imp.saltear.length) lista.appendChild(el("p", { class: "hint" }, `Ya estaban en el plan de ese día y no se duplican: ${imp.saltear.join(", ")}.`));
     $("#btnImpConfirmar").style.display = imp.nuevas.length ? "" : "none";
