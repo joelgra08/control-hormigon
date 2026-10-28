@@ -55,9 +55,9 @@ const PLANTA_ESC_NUEVA = { id: "e_escnueva", codigo: "Escalera nueva", tipo: "E"
 
 // Hormigón mínimo sugerido por tipo (se puede cambiar después en la tabla del plan).
 const PLANTA_HORMIGON = { P: "C45", PA: "C45", L: "C35", E: "C35" };
-// Desde el nivel 109 los pilares son C35 (pantallas, losas y escaleras no cambian).
+// Desde el nivel 109 pilares, pantallas y núcleos son C35 (losas y escaleras ya eran C35).
 function plantaHormigon(tipo, niv) {
-  return tipo === "P" && niv && niv.nivel >= 109 ? "C35" : PLANTA_HORMIGON[tipo];
+  return (tipo === "P" || tipo === "PA") && niv && niv.nivel >= 109 ? "C35" : PLANTA_HORMIGON[tipo];
 }
 const PLANTA_COD_ELEMENTO = { P: "P", PA: "PA", L: "L", E: "E" };
 const PLANTA_ESCALA = 72 / 110; // px a 110 dpi -> unidades del SVG (puntos)
