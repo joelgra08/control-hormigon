@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.16.0";
+const APP_VERSION = "2.16.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -614,6 +614,7 @@ function bindGlobalHandlers() {
   // Resumen mensual
   $("#resumenMes").addEventListener("change", (e) => { state.resumenMes = e.target.value; renderResumenMensual(); });
   $("#btnExportarResumen").addEventListener("click", exportarResumenMensualExcel);
+  $("#btnExportarRecibidos").addEventListener("click", exportarRecibidosExcel);
   $("#btnExportarResumenPDF").addEventListener("click", exportarResumenMensualPDF);
   $all("#formPersonalMensual input").forEach((inp) => inp.addEventListener("change", guardarPersonalMensual));
 
@@ -2483,6 +2484,52 @@ function renderComparacionMensual() {
   cont.appendChild(table);
 }
 
+
+// ---------- m3 recibidos en obra (repartidos + remitos precargados del Plan) ----------
+function recibidosPorDia(yyyyMm) {
+  const dias = {};
+  const get = (f) => (dias[f] = dias[f] || { remitos: 0, m3: 0, pend: 0 });
+  const rem = new Set();
+  lineasDelMes(yyyyMm).forEach((l) => {
+    const r = byId(state.remitos, l.remitoId);
+    const d = get(r.fecha);
+    d.m3 += l.volumen || 0;
+    if (!rem.has(r.id)) { rem.add(r.id); d.remitos++; }
+  });
+  (state.planRemitos || []).filter((p) => p.fecha && p.fecha.slice(0, 7) === yyyyMm).forEach((p) => {
+    const d = get(p.fecha);
+    d.remitos++; d.m3 += p.m3 || 0; d.pend += p.m3 || 0;
+  });
+  return dias;
+}
+
+function renderRecibidosObra() {
+  const dias = recibidosPorDia(state.resumenMes);
+  const fechas = Object.keys(dias).sort();
+  const tot = fechas.reduce((a, f) => ({ remitos: a.remitos + dias[f].remitos, m3: a.m3 + dias[f].m3, pend: a.pend + dias[f].pend }), { remitos: 0, m3: 0, pend: 0 });
+  $("#kpiRecibidosTotal").textContent = fmtM3(tot.m3);
+  $("#kpiRecibidosRemitos").textContent = tot.remitos;
+  $("#kpiRecibidosPend").textContent = fmtM3(tot.pend) + " m³";
+  const tb = $("#tablaRecibidos tbody");
+  tb.innerHTML = "";
+  fechas.forEach((f) => {
+    const d = dias[f];
+    tb.appendChild(el("tr", {}, [el("td", {}, fmtFechaCorta(f)), el("td", {}, String(d.remitos)), el("td", {}, fmtM3(d.m3)), el("td", {}, d.pend ? fmtM3(d.pend) : "")]));
+  });
+  if (fechas.length) tb.appendChild(el("tr", {}, [el("td", {}, el("strong", {}, "Total")), el("td", {}, el("strong", {}, String(tot.remitos))), el("td", {}, el("strong", {}, fmtM3(tot.m3))), el("td", {}, tot.pend ? fmtM3(tot.pend) : "")]));
+}
+
+function exportarRecibidosExcel() {
+  const dias = recibidosPorDia(state.resumenMes);
+  const fechas = Object.keys(dias).sort();
+  const data = [["Fecha", "Remitos", "m3 recibidos", "m3 sin reparto"]];
+  fechas.forEach((f) => data.push([f, dias[f].remitos, Number(dias[f].m3.toFixed(2)), Number(dias[f].pend.toFixed(2))]));
+  data.push(["Total", fechas.reduce((a, f) => a + dias[f].remitos, 0), Number(fechas.reduce((a, f) => a + dias[f].m3, 0).toFixed(2)), Number(fechas.reduce((a, f) => a + dias[f].pend, 0).toFixed(2))]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "m3 recibidos");
+  XLSX.writeFile(wb, `m3_recibidos_${state.resumenMes}.xlsx`);
+}
+
 function renderResumenMensual() {
   $("#resumenMes").value = state.resumenMes;
   const rows = lineasDelMes(state.resumenMes);
@@ -2501,6 +2548,7 @@ function renderResumenMensual() {
     $("#kpiResumenPagaM2").textContent = `${fmtM3(r.m3PagaPorM2)} m³ (${fmtM3(r.m2PagaPorM2)} m²)`;
   }
 
+  renderRecibidosObra();
   const ac = calcularAcumulado(state.resumenMes);
   $("#acumuladoTitulo").textContent = `Acumulado de la obra hasta ${state.resumenMes}`;
   $("#ac_torre").textContent = fmtM3(ac.torre);

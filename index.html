@@ -431,6 +431,18 @@
         <div class="kpi warn" id="kpiResumenPagaM2Card" style="display:none"><div class="value" id="kpiResumenPagaM2">-</div><div class="label">Elementos por m² (no suman al total)</div></div>
       </div>
 
+      <h3 style="margin-top:0">M³ recibidos en obra (para cotejar con la factura)</h3>
+      <div class="kpi-grid" style="margin-bottom:10px">
+        <div class="kpi"><div class="value" id="kpiRecibidosTotal">-</div><div class="label">Total m³ recibidos en el mes</div></div>
+        <div class="kpi"><div class="value" id="kpiRecibidosRemitos">-</div><div class="label">Cantidad de remitos</div></div>
+        <div class="kpi"><div class="value" id="kpiRecibidosPend">-</div><div class="label">De los cuales sin reparto todavía</div></div>
+      </div>
+      <details style="margin-bottom:16px">
+        <summary>Ver por día</summary>
+        <div class="row" style="margin:8px 0"><button id="btnExportarRecibidos" class="ghost">⬇ Excel de m³ recibidos</button></div>
+        <div class="table-scroll" style="max-height:none"><table id="tablaRecibidos"><thead><tr><th>Fecha</th><th>Remitos</th><th>m³ recibidos</th><th>Sin reparto</th></tr></thead><tbody></tbody></table></div>
+      </details>
+
       <h3 id="acumuladoTitulo" style="margin-top:0">Acumulado de la obra</h3>
       <div class="kpi-grid" style="margin-bottom:16px">
         <div class="kpi"><div class="value" id="ac_torre">-</div><div class="label">Torre — m³ acumulados</div></div>

@@ -1,6 +1,10 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
-Versión 2.16.0
+Versión 2.16.1
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.16.1
+------------------------------
+- Resumen mensual: nuevo bloque "M³ recibidos en obra" (para cotejar con la factura). Suma los remitos ya repartidos más los remitos precargados del Plan, con detalle por día y Excel.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.15.3
 ------------------------------
