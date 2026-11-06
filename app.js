@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.15.4";
+const APP_VERSION = "2.16.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -740,6 +740,7 @@ async function borrarObra(obraId) {
   const stores = ["remitos", "catalogoElementos", "catalogoHormigones", "catalogoProveedores", "catalogoCuadrillas", "catalogoColocacion", "catalogoEquipos", "diasExtra", "personalMensual", "personal", "pedidosHierro"];
   if (state.programacionDisponible) stores.push("programacion");
   if (state.planDiaDisponible) stores.push("planDia");
+  if (state.planRemitosDisponible) stores.push("planRemitos");
   for (const s of stores) {
     const all = await DB.getAll(s);
     for (const item of all.filter((x) => x.obraId === obraId)) await DB.delete(s, item.id);

@@ -1,6 +1,6 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
-Versión 2.15.4
+Versión 2.16.0
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.15.3
 ------------------------------

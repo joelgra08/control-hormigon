@@ -144,6 +144,8 @@ async function cargarPlanDia(obraId) {
     if (!data || data.length < PAGINA) break;
   }
   state.planDiaDisponible = true;
+  await cargarPlanRemitos(obraId);
+  planUI.sembradoFecha = null;
   state.planDia = filas.map(rowFromDb).map((r) => ({
     ...r,
     m3: Number(r.m3),
@@ -154,6 +156,17 @@ async function cargarPlanDia(obraId) {
     areaM2: r.areaM2 == null ? null : Number(r.areaM2),
     orden: Number(r.orden) || 0,
   }));
+}
+
+async function cargarPlanRemitos(obraId) {
+  const { data, error } = await supabaseClient.from("plan_remitos").select("*").eq("obra_id", obraId).order("fecha", { ascending: true }).order("nro", { ascending: true }).range(0, 4999);
+  if (error) { console.warn("[Remitos precargados] No se pudo leer la tabla:", error); state.planRemitosDisponible = false; state.planRemitos = []; return; }
+  state.planRemitosDisponible = true;
+  state.planRemitos = (data || []).map(rowFromDb).map((r) => ({ ...r, m3: Number(r.m3), asentamiento: r.asentamiento == null ? null : Number(r.asentamiento) }));
+}
+
+function planPreDelDia() {
+  return (state.planRemitos || []).filter((r) => r.fecha === state.planFecha);
 }
 
 function planFilasDelDia() {
@@ -609,6 +622,16 @@ function planFilaRemitoVacia() {
 function renderPlanRemitosForm() {
   const tbody = $("#tablaPlanRemitos tbody");
   tbody.innerHTML = "";
+  if (planUI.sembradoFecha !== state.planFecha) {
+    planUI.sembradoFecha = state.planFecha;
+    if (!planUI.remitos.some((r) => r.nro || r.m3)) {
+      planUI.remitos = planPreDelDia().map((q) => ({
+        preId: q.id, proveedorId: q.proveedorId || "", nro: q.nro || "", hormigon: q.hormigon || "",
+        m3: q.m3 ? String(q.m3).replace(".", ",") : "", asentamiento: q.asentamiento != null ? String(q.asentamiento).replace(".", ",") : "",
+        horaAObra: q.horaAObra || "", horaDescarga: q.horaDescarga || "", bombeo: !!q.bombeo,
+      }));
+    }
+  }
   if (planUI.remitos.length === 0) planUI.remitos.push(planFilaRemitoVacia());
   const hs = planHormigonesCatalogo();
   planUI.remitos.forEach((r, i) => {
@@ -852,6 +875,9 @@ async function planGuardarRemitos() {
     pv.remitos.forEach((r) => r.lineas.forEach((l) => { if (l.planId) usadas.add(l.planId); }));
     const marcadas = plan.filter((p) => usadas.has(p.id)).map((p) => ({ ...p, cargado: true }));
     if (marcadas.length) await DB.bulkPut("planDia", marcadas);
+    const preUsados = (planUI.remitos || []).map((r) => r.preId).filter(Boolean);
+    for (const id of preUsados) await DB.delete("planRemitos", id);
+    if (preUsados.length) state.planRemitos = state.planRemitos.filter((x) => !preUsados.includes(x.id));
   } catch (e) { return; }
   planUI.preview = null;
   planUI.remitos = [];
@@ -867,13 +893,35 @@ async function planGuardarRemitos() {
 // ---------------------------------------------------------------
 //  Eventos
 // ---------------------------------------------------------------
+// Deja los remitos del formulario guardados en ese día (sin elementos todavía).
+async function planGuardarPrecargados() {
+  if (!state.planRemitosDisponible) return toast("Falta correr el script de Supabase (21_plan_remitos.sql) para guardar remitos.", "error");
+  const filas = planUI.remitos.filter((r) => r.nro && String(r.nro).trim());
+  if (!filas.length) return toast("No hay remitos con número para guardar", "error");
+  if (filas.some((r) => !r.proveedorId)) return toast("Falta elegir el proveedor de algún remito", "error");
+  const nuevos = filas.map((r) => ({
+    id: r.preId || uid("prem"), obraId: state.obraId, fecha: state.planFecha, proveedorId: r.proveedorId,
+    nro: String(r.nro).trim(), hormigon: r.hormigon || null, m3: planNum(r.m3) || 0, asentamiento: planNum(r.asentamiento),
+    horaAObra: r.horaAObra || null, horaDescarga: r.horaDescarga || null, bombeo: !!r.bombeo,
+  }));
+  const ids = new Set(nuevos.map((x) => x.id));
+  const sobran = planPreDelDia().filter((x) => !ids.has(x.id));
+  try {
+    await DB.bulkPut("planRemitos", nuevos);
+    for (const x of sobran) await DB.delete("planRemitos", x.id);
+  } catch (e) { return; }
+  state.planRemitos = state.planRemitos.filter((x) => x.fecha !== state.planFecha).concat(nuevos);
+  filas.forEach((r, i) => { r.preId = nuevos[i].id; });
+  toast(`Quedaron guardados ${nuevos.length} remitos del ${fmtFechaCorta(state.planFecha)}`, "ok");
+}
+
 function bindPlanDiaHandlers() {
   if (!$("#view-plan")) return;
   if (typeof bindPlantaHandlers === "function") bindPlantaHandlers();
   if (typeof bindEscanearHandlers === "function") bindEscanearHandlers();
   state.planFecha = todayISO();
   $("#planFecha").value = state.planFecha;
-  $("#planFecha").addEventListener("change", (e) => { state.planFecha = e.target.value || todayISO(); planUI.preview = null; planResetForm(); renderPlanDia(); });
+  $("#planFecha").addEventListener("change", (e) => { state.planFecha = e.target.value || todayISO(); planUI.preview = null; planUI.remitos = []; planUI.sembradoFecha = null; planResetForm(); renderPlanDia(); });
   $("#plan_elemento").addEventListener("change", planAplicarHormigonDefault);
   $("#plan_diamCm").addEventListener("input", planOnDiametro);
   $("#plan_largoCm").addEventListener("input", () => planCalcDims("largo"));
@@ -887,6 +935,7 @@ function bindPlanDiaHandlers() {
   $("#planArchivo").addEventListener("change", (e) => { planImportarArchivo(e.target.files[0]); e.target.value = ""; });
   $("#btnPlanModelo").addEventListener("click", planDescargarModelo);
   $("#btnPlanVaciar").addEventListener("click", planVaciarDia);
+  $("#btnPlanGuardarPre").addEventListener("click", planGuardarPrecargados);
   $("#btnPlanMasRemito").addEventListener("click", () => { planUI.remitos.push(planFilaRemitoVacia()); renderPlanRemitosForm(); });
   $("#btnPlanPegar").addEventListener("click", planPegarRemitos);
   $("#btnPlanCalcular").addEventListener("click", planCalcular);
