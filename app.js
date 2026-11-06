@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.16.1";
+const APP_VERSION = "2.16.2";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2764,7 +2764,8 @@ function exportarControlRemitosExcel() {
   if (hasta) rows = rows.filter((r) => r.fecha <= hasta);
   rows = rows.sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
 
-  if (rows.length === 0) return toast("No hay remitos en ese rango", "error");
+  const hayPre = (state.planRemitos || []).some((p) => (!desde || p.fecha >= desde) && (!hasta || p.fecha <= hasta));
+  if (rows.length === 0 && !hayPre) return toast("No hay remitos en ese rango", "error");
 
   // Un solo renglón por remito: si por algún motivo hay dos cabezales con el
   // mismo N° (mismo proveedor y fecha), se muestra una sola vez.
@@ -2777,7 +2778,26 @@ function exportarControlRemitosExcel() {
     vistos.add(k);
     return true;
   });
-  const data = unicos.map(remitoARowControl);
+  const filas = unicos.map((r) => ({ f: r.fecha || "", row: remitoARowControl(r) }));
+  // Remitos precargados en el Plan (todavía sin reparto): también cuentan como recibidos.
+  const nrosCargados = new Set(unicos.map((r) => (r.remitoNro || "").trim().toLowerCase()).filter(Boolean));
+  (state.planRemitos || [])
+    .filter((p) => (!desde || p.fecha >= desde) && (!hasta || p.fecha <= hasta) && !nrosCargados.has((p.nro || "").trim().toLowerCase()))
+    .forEach((p) => {
+      const horm = state.catalogo.hormigones.find((h) => h.codigo === p.hormigon);
+      filas.push({
+        f: p.fecha,
+        row: {
+          "Fecha": p.fecha || "",
+          "N° Remito": p.nro || "",
+          "M3 remito": p.m3 ?? "",
+          "Tipo de hormigón": horm ? `${horm.codigo} (${horm.resistencia})` : (p.hormigon || ""),
+          "Bombeado/Volcado": p.bombeo ? "Bombeado" : "Volcado",
+        },
+      });
+    });
+  filas.sort((x, y) => (x.f < y.f ? -1 : x.f > y.f ? 1 : 0));
+  const data = filas.map((x) => x.row);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
   ws["!cols"] = autoWidth(data);

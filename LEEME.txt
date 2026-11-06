@@ -1,6 +1,10 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
-Versión 2.16.1
+Versión 2.16.2
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.16.2
+------------------------------
+- Exportar > "Exportar control de remitos": ahora incluye también los remitos precargados del Plan (todavía sin reparto), así el control contra facturas queda completo.
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.16.1
 ------------------------------
