@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.19.0";
+const APP_VERSION = "2.19.1";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2273,9 +2273,30 @@ function ordenarTiposHormigon(obj) {
 // elegido (inclusive), por zona. Misma base que el HH/m3: sin desperdicio, sin
 // elementos por m2 y sin mortero.
 // Hormigón teórico total de la obra (Basamento + Torre), en m3: base del % de avance.
-const M3_TEORICO_OBRA = 11368;
+// Torre 8.405 + Basamento 2.963 (Basamento = Basamento I + II + Viga perimetral).
+const M3_TEORICO_TORRE = 8405;
+const M3_TEORICO_BASAMENTO = 2963;
+const M3_TEORICO_OBRA = M3_TEORICO_TORRE + M3_TEORICO_BASAMENTO; // 11.368
 function pctAvanceObra(m3) { return M3_TEORICO_OBRA ? m3 / M3_TEORICO_OBRA : 0; }
-function fmtAvance(m3) { return `${(pctAvanceObra(m3) * 100).toFixed(1).replace(".", ",")} %`; }
+function fmtPctAv(m3, base) { return `${(base ? (m3 / base) * 100 : 0).toFixed(1).replace(".", ",")} %`; }
+function fmtAvance(m3) { return fmtPctAv(m3, M3_TEORICO_OBRA); }
+// Avance acumulado hasta el mes y aporte del mes, por zona. Quedan fuera contrapisos (por m2),
+// desperdicio y hormigón de limpieza (ya lo excluye volumenPorGrupo); el mortero tampoco cuenta.
+function calcularAvance(yyyyMm) {
+  const ac = calcularAcumulado(yyyyMm);
+  const rowsMes = state.lineas.filter((l) => {
+    const r = byId(state.remitos, l.remitoId);
+    return r && r.fecha && r.fecha.slice(0, 7) === yyyyMm && !esMortero(r);
+  });
+  const t = volumenPorGrupo(rowsMes, "TORRE");
+  const b = volumenPorGrupo(rowsMes, "BASAMENTO_I") + volumenPorGrupo(rowsMes, "BASAMENTO_II") + volumenPorGrupo(rowsMes, "BASAMENTO") + volumenPorGrupo(rowsMes, "VIGA_PERIMETRAL");
+  const basAc = ac.basamento + ac.viga;
+  return {
+    torre: { acum: ac.torre, mes: t, base: M3_TEORICO_TORRE },
+    basamento: { acum: basAc, mes: b, base: M3_TEORICO_BASAMENTO },
+    total: { acum: ac.torre + basAc, mes: t + b, base: M3_TEORICO_OBRA },
+  };
+}
 
 function calcularAcumulado(yyyyMm) {
   const rows = state.lineas.filter((l) => {
@@ -2582,8 +2603,11 @@ function renderResumenMensual() {
   $("#ac_bas").textContent = fmtM3(ac.basamento);
   $("#ac_viga").textContent = fmtM3(ac.viga);
   $("#ac_total").textContent = fmtM3(ac.total);
-  $("#ac_avance").textContent = fmtAvance(ac.total);
-  $("#ac_avanceDetalle").textContent = `${fmtM3(ac.total)} de ${fmtM3(M3_TEORICO_OBRA)} m³ teóricos`;
+  const av = calcularAvance(state.resumenMes);
+  [["Torre", av.torre], ["Bas", av.basamento], ["Total", av.total]].forEach(([k, a]) => {
+    $("#av" + k).textContent = fmtPctAv(a.acum, a.base);
+    $("#av" + k + "Det").textContent = `${fmtM3(a.acum)} de ${fmtM3(a.base)} m³ · este mes +${fmtPctAv(a.mes, a.base)}`;
+  });
 
   const rend = (contId, obj, mantenerOrden) => {
     const cont = $(contId);
@@ -3071,7 +3095,13 @@ function exportarResumenMensualPDF() {
   doc.setFontSize(11);
   doc.text(`Acumulado de la obra hasta ${state.resumenMes}`, margin, y);
   doc.autoTable({ startY: y + 3, head: [["Zona", "M3 acumulados"]], theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin },
-    body: [["Torre", fmtM3(acPdf.torre) + " m3"], ["Basamento I", fmtM3(acPdf.basI) + " m3"], ["Basamento II", fmtM3(acPdf.basII) + " m3"], ["Basamento unificado", fmtM3(acPdf.basamento) + " m3"], ["Viga perimetral", fmtM3(acPdf.viga) + " m3"], ["Total (Torre + Basamento + Viga)", fmtM3(acPdf.total) + " m3"], [`Avance de obra (sobre ${fmtM3(M3_TEORICO_OBRA)} m3 teóricos)`, fmtAvance(acPdf.total)]] });
+    body: [["Torre", fmtM3(acPdf.torre) + " m3"], ["Basamento I", fmtM3(acPdf.basI) + " m3"], ["Basamento II", fmtM3(acPdf.basII) + " m3"], ["Basamento unificado", fmtM3(acPdf.basamento) + " m3"], ["Viga perimetral", fmtM3(acPdf.viga) + " m3"], ["Total (Torre + Basamento + Viga)", fmtM3(acPdf.total) + " m3"]] });
+  {
+    const av = calcularAvance(state.resumenMes);
+    y = doc.lastAutoTable.finalY + 6;
+    doc.autoTable({ startY: y, head: [["Avance de obra", "Acumulado", "% acumulado", "Del mes"]], theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin },
+      body: [["Torre", av.torre], ["Basamento (I + II + Viga perimetral)", av.basamento], ["Total obra", av.total]].map(([n, a]) => [n, `${fmtM3(a.acum)} de ${fmtM3(a.base)} m3`, fmtPctAv(a.acum, a.base), `+${fmtPctAv(a.mes, a.base)}`]) });
+  }
   y = doc.lastAutoTable.finalY + 8;
   if (y > 230) { doc.addPage(); y = margin; }
   doc.setFont(undefined, "bold");
@@ -3194,8 +3224,9 @@ function exportarResumenMensualExcel() {
     ["Basamento unificado", calcularAcumulado(state.resumenMes).basamento],
     ["Viga perimetral", calcularAcumulado(state.resumenMes).viga],
     ["Total (Torre + Basamento + Viga)", calcularAcumulado(state.resumenMes).total],
-    ["Hormigón teórico de la obra (m3)", M3_TEORICO_OBRA],
-    ["Avance de obra", fmtAvance(calcularAcumulado(state.resumenMes).total)],
+    [],
+    ["Avance de obra", "m3 acumulados", "m3 teóricos", "% acumulado", "m3 del mes", "% del mes"],
+    ...(() => { const av = calcularAvance(state.resumenMes); return [["Torre", av.torre], ["Basamento (I + II + Viga perimetral)", av.basamento], ["Total obra", av.total]].map(([n, a]) => [n, a.acum, a.base, a.base ? a.acum / a.base : 0, a.mes, a.base ? a.mes / a.base : 0]); })(),
     [],
     ["M3 por tipo de hormigón"],
     ...ordenarTiposHormigon(r.porHormigon),
