@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.17.1";
+const APP_VERSION = "2.18.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2060,6 +2060,16 @@ function esPagaPorM2(linea) {
   return !!elem && !!elem.pagaPorM2;
 }
 
+// Hormigón de limpieza (elemento HL / HORM-LIMP, o remito de hormigón "HL"): se muestra aparte
+// y NO suma al Total m3 ni al resto de los KPIs.
+function esLimpieza(linea) {
+  const elem = byId(state.catalogo.elementos, linea.elementoId);
+  if (elem && ((elem.tipoElemento || "").toUpperCase() === "HORM-LIMP" || (elem.codigo || "").toUpperCase() === "HL")) return true;
+  const r = byId(state.remitos, linea.remitoId);
+  const h = r ? byId(state.catalogo.hormigones, r.hormigonId) : null;
+  return !!h && ((h.codigo || "").toUpperCase() === "HL" || /limpieza/i.test(h.nombre || h.resistencia || ""));
+}
+
 function lineaConRemito(linea) {
   return { linea, remito: byId(state.remitos, linea.remitoId) };
 }
@@ -2159,7 +2169,7 @@ function lineasDelDia(fecha) {
 }
 
 function calcularKPIs(rows) {
-  let totalM3 = 0, m3Bombeado = 0, m3Desperdicio = 0, m3PagaPorM2 = 0, m2PagaPorM2 = 0;
+  let totalM3 = 0, m3Bombeado = 0, m3Desperdicio = 0, m3PagaPorM2 = 0, m2PagaPorM2 = 0, m3Limpieza = 0;
   rows.forEach((l) => {
     const v = l.volumen || 0;
     if (esPagaPorM2(l)) {
@@ -2167,6 +2177,10 @@ function calcularKPIs(rows) {
       // al Total m3 ni al resto de los KPIs.
       m3PagaPorM2 += v;
       m2PagaPorM2 += l.areaM2 || 0;
+      return;
+    }
+    if (esLimpieza(l)) {
+      m3Limpieza += v;
       return;
     }
     totalM3 += v;
@@ -2181,6 +2195,7 @@ function calcularKPIs(rows) {
     cantLineas: rows.length,
     m3PagaPorM2,
     m2PagaPorM2,
+    m3Limpieza,
   };
 }
 
@@ -2200,6 +2215,8 @@ function renderTarjetaDiaria() {
   $("#kpiTarjetaBombeado").textContent = fmtM3(k.m3Bombeado);
   $("#kpiTarjetaDesperdicio").textContent = fmtM3(k.m3Desperdicio);
   $("#kpiTarjetaPctDesperdicio").textContent = fmtPct(k.pctDesperdicio);
+  $("#kpiTarjetaLimpiezaCard").style.display = k.m3Limpieza > 0 ? "" : "none";
+  if (k.m3Limpieza > 0) $("#kpiTarjetaLimpieza").textContent = `${fmtM3(k.m3Limpieza)} m³`;
   $("#kpiTarjetaCantRemitos").textContent = new Set(rows.map((l) => l.remitoId)).size;
 
   const tbody = $("#tablaTarjeta tbody");
@@ -2342,7 +2359,7 @@ async function guardarPersonalMensual() {
 function volumenPorGrupo(rows, grupo) {
   let total = 0;
   rows.forEach((l) => {
-    if (esDesperdicio(l) || esPagaPorM2(l)) return;
+    if (esDesperdicio(l) || esPagaPorM2(l) || esLimpieza(l)) return;
     const cuad = byId(state.catalogo.cuadrillas, l.cuadrillaId);
     if (cuad && cuad.grupo === grupo) total += l.volumen || 0;
   });
@@ -2547,6 +2564,9 @@ function renderResumenMensual() {
   if (tienePagaM2) {
     $("#kpiResumenPagaM2").textContent = `${fmtM3(r.m3PagaPorM2)} m³ (${fmtM3(r.m2PagaPorM2)} m²)`;
   }
+
+  $("#kpiResumenLimpiezaCard").style.display = r.m3Limpieza > 0 ? "" : "none";
+  if (r.m3Limpieza > 0) $("#kpiResumenLimpieza").textContent = `${fmtM3(r.m3Limpieza)} m³`;
 
   renderRecibidosObra();
   const ac = calcularAcumulado(state.resumenMes);
@@ -2888,6 +2908,7 @@ async function exportarTarjetaDiariaPDF() {
     body: [
       ["Temperatura", dia?.temperatura != null ? `${dia.temperatura} °C` : "-", "Total M3", `${fmtM3(k.totalM3)} m3`, "M3 Desperdicio", `${fmtM3(k.m3Desperdicio)} m3`],
       ["M3 Bombeados", `${fmtM3(k.m3Bombeado)} m3`, "% Desperdicio", fmtPct(k.pctDesperdicio), "Remitos del día", String(new Set(rows.map((l) => l.remitoId)).size)],
+      ...(k.m3Limpieza > 0 ? [["H. limpieza", `${fmtM3(k.m3Limpieza)} m3`, "(no suma al total)", "", "", ""]] : []),
     ],
     columnStyles: { 0: { fontStyle: "bold" }, 2: { fontStyle: "bold" }, 4: { fontStyle: "bold" } },
   });
@@ -3015,6 +3036,7 @@ function exportarResumenMensualPDF() {
   if (r.m3PagaPorM2 > 0 || r.m2PagaPorM2 > 0) {
     kpiBody.push(["Elementos por m2 (no suman al total)", `${fmtM3(r.m3PagaPorM2)} m3`, "", `${fmtM3(r.m2PagaPorM2)} m2`, "", ""]);
   }
+  if (r.m3Limpieza > 0) kpiBody.push(["Hormigón de limpieza (no suma al total)", `${fmtM3(r.m3Limpieza)} m3`, "", "", "", ""]);
   doc.autoTable({
     startY: y,
     theme: "grid",
@@ -3153,6 +3175,7 @@ function exportarResumenMensualExcel() {
     ["Promedio m3/día", r.promedioPorDia],
     ["Cantidad de remitos", r.cantRemitos],
     ...(r.m3PagaPorM2 > 0 || r.m2PagaPorM2 > 0 ? [["Elementos por m2 (no suman al total)", r.m3PagaPorM2, "m2", r.m2PagaPorM2]] : []),
+    ...(r.m3Limpieza > 0 ? [["Hormigón de limpieza (no suma al total)", r.m3Limpieza]] : []),
     [],
     ["M3 por tipo de elemento"],
     ...Object.entries(r.porElemento).sort((a, b) => b[1] - a[1]),

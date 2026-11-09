@@ -1,5 +1,13 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.18.0
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.18.0
+- Hormigón de limpieza (elemento HL): ya no suma al Total m3 de la tarjeta diaria ni del
+  resumen mensual (ni a bombeado, desperdicio ni productividad). Se muestra aparte como
+  "Hormigón de limpieza (no suma al total)" en pantalla, PDF y Excel. En "Exportar control de
+  remitos" sigue apareciendo (la controladora cuenta todo lo que llegó a obra).
+
 Versión 2.17.1
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.17.1
