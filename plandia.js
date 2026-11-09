@@ -823,6 +823,26 @@ function planDuplicadoExistente(nro, proveedorId) {
   return remitoNroDuplicado(nro, proveedorId, null);
 }
 
+// Cierre de un día cuyos remitos ya figuran guardados: borra los precargados repetidos y
+// marca como cargados los elementos del plan que ya tienen líneas de remito ese día.
+async function planCerrarYaGuardados(plan) {
+  try {
+    const nros = new Set((state.remitos || []).filter((r) => r.fecha === state.planFecha).map((r) => (r.remitoNro || "").trim().toLowerCase()));
+    const pre = planPreDelDia().filter((x) => nros.has((x.nro || "").trim().toLowerCase()));
+    for (const x of pre) await DB.delete("planRemitos", x.id);
+    const ids = new Set((state.remitos || []).filter((r) => r.fecha === state.planFecha).map((r) => r.id));
+    const lins = (state.lineas || []).filter((l) => ids.has(l.remitoId));
+    const marcadas = plan.filter((p) => !p.cargado && lins.some((l) => plantaNorm(l.nomenclatura) === plantaNorm(p.nomenclatura) && (p.cota == null || l.nivelFondo == null || Math.abs(l.nivelFondo - p.cota) < 0.001))).map((p) => ({ ...p, cargado: true }));
+    if (marcadas.length) await DB.bulkPut("planDia", marcadas);
+    planUI.preview = null;
+    planUI.remitos = [];
+    planUI.sembradoFecha = null;
+    await loadObraData(state.obraId);
+    renderRemitosTable(); renderTarjetaDiaria(); renderResumenMensual(); renderProbetas(); renderPlanDia();
+    toast(`Esos remitos ya estaban guardados: se cerró el día (${pre.length} precargados quitados, ${marcadas.length} elementos marcados como cargados)`, "ok");
+  } catch (e) { /* el aviso lo muestra la capa de datos */ }
+}
+
 async function planGuardarRemitos() {
   if (!puedeAgregar()) return;
   const pv = planUI.preview;
@@ -837,7 +857,11 @@ async function planGuardarRemitos() {
   }
 
   const duplicados = pv.remitos.filter((r) => planDuplicadoExistente(r.nro, r.proveedorId)).map((r) => r.nro);
-  if (duplicados.length) return toast(`Ya existen remitos con N° ${duplicados.slice(0, 5).join(", ")} para este proveedor`, "error");
+  if (duplicados.length && duplicados.length === pv.remitos.length) {
+    // Todos ya estaban guardados (un guardado anterior se cortó a medias): se completa el cierre.
+    return planCerrarYaGuardados(plan);
+  }
+  if (duplicados.length) return toast(`Ya existen remitos con N° ${duplicados.join(", ")} para este proveedor. Quitá esos del formulario y volvé a guardar.`, "error");
 
   const remitosDb = [], lineasDb = [];
   for (const r of pv.remitos) {

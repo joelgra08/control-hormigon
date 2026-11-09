@@ -1,5 +1,12 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.17.1
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.17.1
+- Plan del día: si al guardar los remitos todos ya figuraban guardados (un guardado anterior se
+  cortó a medias), ahora completa el cierre en vez de dar error: quita los remitos precargados
+  repetidos y marca como cargados los elementos del plan que ya tienen líneas ese día.
+
 Versión 2.17.0
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.17.0
