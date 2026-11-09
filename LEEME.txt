@@ -1,5 +1,13 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.19.0
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.19.0
+- Resumen mensual: nuevo "Avance de obra" = m3 acumulados (Torre + Basamento + Viga, sin
+  desperdicio, limpieza ni elementos por m2) sobre los 11.368 m3 teóricos de la obra.
+  Sale en pantalla, en el PDF y en el Excel del resumen. El valor está en app.js
+  (M3_TEORICO_OBRA).
+
 Versión 2.18.0
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.18.0
