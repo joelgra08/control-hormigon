@@ -1,5 +1,16 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.20.0
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.20.0
+- PDF del reporte mensual: tres páginas nuevas al principio y después sigue el detalle de
+  remitos de siempre.
+  1) "Hormigón en remitos": m3 comprados, teóricos (en elementos) y diferencia, con un gráfico
+     en cascada (contrapisos, hormigón de limpieza, desperdicio).
+  2) "Avance de obra": barras de Torre / Basamento / Total, m3 por mes con % acumulado,
+     tipo de hormigón, m3 por día y Basamento por equipo.
+  3) "Personal y productividad": tabla si hay personal cargado; si no, un aviso.
+
 Versión 2.19.1
 
 QUÉ CAMBIÓ EN LAS VERSIONES 2.19.0 y 2.19.1

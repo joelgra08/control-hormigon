@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.19.1";
+const APP_VERSION = "2.20.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -3033,6 +3033,174 @@ async function exportarTarjetaDiariaPDF() {
   doc.save(`${fmtFechaArchivo(state.tarjetaFecha)} tarjeta diaria.pdf`);
 }
 
+// ---------- Portada del reporte mensual (páginas 1 a 3 del PDF) ----------
+function mesAnterior(yyyyMm, n) {
+  const [y, m] = yyyyMm.split("-").map(Number);
+  const d = new Date(y, m - 1 - n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+const MESES_ABR = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const MESES_LARGO = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function dibujarPortadaReporte(doc, r, rows, prod, obra) {
+  const PW = 210, M = 12, CW = PW - M * 2;
+  const C = { gd: [20, 45, 32], g: [47, 107, 73], gl: [168, 213, 186], or: [224, 160, 48], rd: [201, 80, 63], bl: [59, 110, 165], gr: [138, 148, 143], bg: [246, 248, 246], tx: [68, 80, 74] };
+  const fill = (c) => doc.setFillColor(c[0], c[1], c[2]);
+  const ink = (c) => doc.setTextColor(c[0], c[1], c[2]);
+  const [ay, am] = state.resumenMes.split("-").map(Number);
+  const mesTxt = `${MESES_LARGO[am - 1]} ${ay}`;
+  const num0 = (n) => fmtM3(Math.round(n)).split(",")[0];
+  const txt = (t, x, y, size, c, style, align) => { doc.setFontSize(size); doc.setFont(undefined, style || "normal"); ink(c); doc.text(String(t), x, y, align ? { align } : undefined); };
+  const header = (titulo) => {
+    fill(C.gd); doc.rect(0, 0, PW, 16, "F");
+    txt(titulo, M, 10.5, 15, [255, 255, 255], "bold");
+    txt(`${obra?.nombre || ""} · ${mesTxt}`, PW - M, 10.5, 9, C.gl, "normal", "right");
+  };
+  const card = (x, y, w, h, val, label, c) => {
+    fill(C.bg); doc.setDrawColor(223, 230, 225); doc.roundedRect(x, y, w, h, 2, 2, "FD");
+    txt(val, x + w / 2, y + h * 0.5, 17, c, "bold", "center");
+    txt(label, x + w / 2, y + h * 0.78, 7.5, C.tx, "normal", "center");
+  };
+
+  // Cifras base
+  const comprados = r.totalM3 + r.m3PagaPorM2 + r.m3Limpieza;
+  const enElem = r.totalM3 - r.m3Desperdicio;
+  const dif = comprados - enElem;
+
+  // ============ Página 1 ============
+  header("Reporte mensual de hormigón");
+  txt("Hormigón en remitos", M, 28, 14, C.gd, "bold");
+  const cw = (CW - 8) / 3;
+  card(M, 33, cw, 24, `${num0(comprados)} m3`, "comprados en el mes (remitos)", C.gd);
+  card(M + cw + 4, 33, cw, 24, `${num0(enElem)} m3`, "teóricos (en elementos)", C.g);
+  card(M + (cw + 4) * 2, 33, cw, 24, `+${num0(dif)} m3`, `diferencia (${fmtPct(enElem ? dif / enElem : 0)} sobre el teórico)`, C.or);
+
+  txt("De lo comprado a lo teórico (m3)", M, 68, 10, C.gd, "bold");
+  const bars = [["Comprado", comprados, C.gd, "t"], ["Contrapisos", -r.m3PagaPorM2, C.or], ["Hormigón de limpieza", -r.m3Limpieza, C.bl], ["Desperdicio", -r.m3Desperdicio, C.rd], ["Teórico", enElem, C.g, "t"]];
+  const cx0 = M + 4, cy0 = 72, ch = 78, cwid = CW - 8, bw = cwid / bars.length;
+  const vmax = comprados || 1, vmin = Math.max(0, Math.floor((enElem * 0.85) / 100) * 100); // eje cortado para que se vean las diferencias
+  const sy = (v) => cy0 + ch - ((v - vmin) / ((vmax * 1.03 - vmin) || 1)) * ch;
+  doc.setDrawColor(150, 150, 150); doc.line(cx0, cy0 + ch, cx0 + cwid, cy0 + ch);
+  let run = comprados;
+  bars.forEach(([n, v, c, t], i) => {
+    const bx = cx0 + i * bw + bw * 0.18, w = bw * 0.64;
+    fill(c);
+    if (t) { doc.rect(bx, sy(v), w, cy0 + ch - sy(v), "F"); txt(num0(v), bx + w / 2, sy(v) - 2, 9, C.gd, "bold", "center"); }
+    else { const top = sy(run), bot = sy(run + v); doc.rect(bx, top, w, Math.max(bot - top, 0.4), "F"); txt(`-${num0(-v)}`, bx + w / 2, top - 2, 9, c, "bold", "center"); run += v; }
+    doc.setFontSize(8); doc.setFont(undefined, "normal"); ink(C.gd);
+    doc.text(doc.splitTextToSize(n, bw - 2), bx + w / 2, cy0 + ch + 5, { align: "center" });
+  });
+  if (vmin > 0) txt(`el eje arranca en ${num0(vmin)} m3`, cx0 + cwid, cy0 - 1, 7, C.gr, "normal", "right");
+
+  txt("Detalle de la diferencia", M, 172, 11, C.gd, "bold");
+  const det = [["Contrapisos (se pagan por m2)", r.m3PagaPorM2, C.or, r.m2PagaPorM2 > 0 ? `${fmtM3(r.m2PagaPorM2)} m2` : ""], ["Hormigón de limpieza", r.m3Limpieza, C.bl, ""], ["Desperdicio", r.m3Desperdicio, C.rd, `${fmtPct(r.pctDesperdicio)} de lo colado`]];
+  det.forEach(([n, v, c, nota], i) => {
+    const yy = 182 + i * 14;
+    fill(c); doc.rect(M, yy - 4, 1.8, 9, "F");
+    txt(n, M + 5, yy, 10, [20, 30, 20]);
+    if (nota) txt(nota, M + 5, yy + 4.5, 7.5, C.gr);
+    txt(`${fmtM3(v)} m3`, M + 112, yy, 10, [20, 30, 20], "bold", "right");
+    txt(`${fmtPct(dif ? v / dif : 0)} de la diferencia`, M + 116, yy, 8, C.gr);
+  });
+  txt("Teórico = volumen calculado con las dimensiones de cada elemento (losas, pilares, vigas, etc.).", M, 232, 7.5, C.gr);
+
+  // ============ Página 2 ============
+  doc.addPage();
+  header("Avance de obra");
+  const av = calcularAvance(state.resumenMes);
+  txt(`Avance sobre los ${num0(M3_TEORICO_OBRA)} m3 teóricos de la obra`, M, 28, 14, C.gd, "bold");
+  [["Torre", av.torre], ["Basamento (I + II + Viga perimetral)", av.basamento], ["Total obra", av.total]].forEach(([n, a], i) => {
+    const yy = 38 + i * 16;
+    txt(n, M, yy, 10, [20, 30, 20], "bold");
+    txt(`${fmtPctAv(a.acum, a.base)}   (${num0(a.acum)} de ${num0(a.base)} m3)   este mes +${fmtPctAv(a.mes, a.base)}`, PW - M, yy, 8.5, C.tx, "normal", "right");
+    fill([230, 236, 232]); doc.rect(M, yy + 2, CW, 5, "F");
+    const prev = Math.max(0, (a.acum - a.mes) / a.base), mes = Math.max(0, a.mes / a.base);
+    fill(C.g); doc.rect(M, yy + 2, CW * Math.min(prev, 1), 5, "F");
+    fill(C.or); doc.rect(M + CW * Math.min(prev, 1), yy + 2, CW * Math.min(mes, 1 - Math.min(prev, 1)), 5, "F");
+  });
+  fill(C.g); doc.rect(M, 84, 3, 3, "F"); txt("acumulado anterior", M + 5, 86.5, 7.5, C.gr);
+  fill(C.or); doc.rect(M + 40, 84, 3, 3, "F"); txt("aporte del mes", M + 45, 86.5, 7.5, C.gr);
+
+  // Evolución mensual
+  txt("Hormigón colado por mes (barras) y % de avance acumulado (línea)", M, 98, 10, C.gd, "bold");
+  const meses = [];
+  for (let i = 5; i >= 0; i--) { const mm = mesAnterior(state.resumenMes, i); const a = calcularAvance(mm); if (a.total.acum > 0 || a.total.mes > 0) meses.push({ mm, mes: a.total.mes, pct: a.total.acum / M3_TEORICO_OBRA }); }
+  const ex0 = M + 4, ey0 = 104, eh = 52, ew = CW - 8;
+  doc.setDrawColor(150, 150, 150); doc.line(ex0, ey0 + eh, ex0 + ew, ey0 + eh);
+  if (meses.length) {
+    const mx = Math.max(...meses.map((m) => m.mes), 1), pmx = Math.max(...meses.map((m) => m.pct), 0.01);
+    const bw2 = ew / meses.length;
+    const pts = [];
+    meses.forEach((m, i) => {
+      const bx = ex0 + i * bw2 + bw2 * 0.2, w = bw2 * 0.6, h = (m.mes / mx) * eh * 0.8;
+      fill(m.mm === state.resumenMes ? C.g : C.gl); doc.rect(bx, ey0 + eh - h, w, h, "F");
+      txt(`${num0(m.mes)} m3`, bx + w / 2, ey0 + eh - 2, 8, m.mm === state.resumenMes ? [255, 255, 255] : C.gd, "bold", "center");
+      txt(MESES_ABR[parseInt(m.mm.slice(5), 10) - 1], bx + w / 2, ey0 + eh + 5, 8.5, C.gd, "normal", "center");
+      pts.push([bx + w / 2, ey0 + eh * 0.95 - (m.pct / (pmx * 1.15)) * eh * 0.85, m.pct]);
+    });
+    doc.setDrawColor(C.or[0], C.or[1], C.or[2]); doc.setLineWidth(0.7);
+    for (let i = 1; i < pts.length; i++) doc.line(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]);
+    doc.setLineWidth(0.2);
+    pts.forEach((p) => { fill(C.or); doc.circle(p[0], p[1], 1.2, "F"); txt(`${(p[2] * 100).toFixed(1).replace(".", ",")} %`, p[0], p[1] - 3, 8, C.or, "bold", "center"); });
+  }
+
+  // Tipo de hormigón (barra apilada) y m3 por día
+  txt("Por tipo de hormigón", M, 172, 10, C.gd, "bold");
+  const tipos = ordenarTiposHormigon(r.porHormigon).filter(([, v]) => v > 0);
+  const totH = tipos.reduce((a, [, v]) => a + v, 0) || 1;
+  const pal = [C.g, C.gd, C.bl, C.or, C.gr, C.rd, C.gl];
+  let hx = M;
+  tipos.forEach(([k, v], i) => { const w = (v / totH) * 88; fill(pal[i % pal.length]); doc.rect(hx, 176, w, 7, "F"); hx += w; });
+  tipos.slice(0, 7).forEach(([k, v], i) => { fill(pal[i % pal.length]); doc.rect(M, 188 + i * 5, 3, 3, "F"); txt(`${k}   ${fmtM3(v)} m3   (${fmtPct(v / totH)})`, M + 5, 190.6 + i * 5, 8, C.tx); });
+
+  txt("m3 por día", 112, 172, 10, C.gd, "bold");
+  const porDia = {};
+  rows.forEach((l) => { const rr = byId(state.remitos, l.remitoId); if (rr?.fecha) porDia[rr.fecha] = (porDia[rr.fecha] || 0) + (l.volumen || 0); });
+  const dmax = Math.max(...Object.values(porDia), 1);
+  const dias = new Date(ay, am, 0).getDate(), dx0 = 112, dy0 = 178, dh = 38, dw = PW - M - dx0;
+  doc.setDrawColor(150, 150, 150); doc.line(dx0, dy0 + dh, dx0 + dw, dy0 + dh);
+  let pico = null;
+  for (let d = 1; d <= dias; d++) {
+    const f = `${state.resumenMes}-${String(d).padStart(2, "0")}`, v = porDia[f] || 0;
+    if (!pico || v > pico.v) pico = { d, v };
+    if (v > 0) { const h = (v / dmax) * dh * 0.85, bx = dx0 + ((d - 1) / dias) * dw; fill(v === dmax ? C.or : C.gl); doc.rect(bx, dy0 + dh - h, dw / dias * 0.75, h, "F"); }
+  }
+  [1, 10, 20, dias].forEach((d) => txt(String(d), dx0 + ((d - 1) / dias) * dw + 1, dy0 + dh + 4, 7, C.gr, "normal", "center"));
+  if (pico && pico.v > 0) txt(`pico: ${pico.d}/${String(am).padStart(2, "0")} · ${fmtM3(pico.v)} m3`, dx0 + dw, dy0 - 2, 7.5, C.tx, "normal", "right");
+
+  // Basamento por equipo
+  txt("Basamento por equipo (mes)", M, 232, 10, C.gd, "bold");
+  const nomCuad = (g, def) => { const c = (state.catalogo.cuadrillas || []).find((q) => q.grupo === g); return c && c.nombre ? `${def} · ${c.nombre}` : def; };
+  const eq = [[nomCuad("BASAMENTO_I", "Basamento I"), prod.m3BasI], [nomCuad("BASAMENTO_II", "Basamento II"), prod.m3BasII], ["Viga perimetral", prod.m3Viga]];
+  const gen = volumenPorGrupo(rows, "BASAMENTO");
+  if (gen > 0) eq.push(["Basamento (general)", gen]);
+  eq.forEach(([n, v], i) => { const x = M + i * (CW / eq.length); txt(`${num0(v)} m3`, x, 244, 15, C.g, "bold"); txt(n, x, 250, 8, C.tx); });
+
+  // ============ Página 3 ============
+  doc.addPage();
+  header("Personal y productividad");
+  const hayPersonal = (prod.personalTorre + prod.personalBasamento + prod.personalHerreros + prod.personalIndirectos) > 0;
+  if (!hayPersonal) {
+    fill(C.bg); doc.setDrawColor(223, 230, 225); doc.roundedRect(M + 10, 50, CW - 20, 50, 3, 3, "FD");
+    txt("Todavía no hay personal cargado este mes", PW / 2, 70, 13, C.gd, "bold", "center");
+    txt("Cuando se cargue aparecen acá: jornales por equipo y HH por m3.", PW / 2, 82, 9.5, C.gr, "normal", "center");
+  } else {
+    const f2 = (n) => (n == null ? "-" : fmtM3(n));
+    doc.autoTable({
+      startY: 26, theme: "striped", styles: { fontSize: 9, cellPadding: 2 }, headStyles: { fillColor: C.g, textColor: 255 }, margin: { left: M, right: M },
+      head: [["Equipo", "Personal", "m3 del mes", "HH/m3 directas", "HH/m3 con indirectos"]],
+      body: [
+        ["Torre", prod.personalTorre, f2(prod.m3Torre), f2(prod.hhm3TorreDirectos), f2(prod.hhm3TorreConIndirectos)],
+        ["Basamento I", prod.personalBasI, f2(prod.m3BasI), f2(prod.hhm3BasIDirectos), f2(prod.hhm3BasIConIndirectos)],
+        ["Basamento II", prod.personalBasII, f2(prod.m3BasII), f2(prod.hhm3BasIIDirectos), f2(prod.hhm3BasIIConIndirectos)],
+        ["Basamento unificado", prod.personalBasamento, f2(prod.m3Basamento), f2(prod.hhm3BasamentoDirectos), f2(prod.hhm3BasamentoConIndirectos)],
+        ["General", "", f2(prod.m3Directo), f2(prod.hhm3GeneralDirectos), f2(prod.hhm3GeneralConIndirectos)],
+      ],
+    });
+  }
+  doc.addPage();
+}
+
 function exportarResumenMensualPDF() {
   const obra = byId(state.obras, state.obraId);
   const rows = lineasDelMes(state.resumenMes);
@@ -3046,12 +3214,14 @@ function exportarResumenMensualPDF() {
   const margin = 10;
   let y = 10;
 
+  dibujarPortadaReporte(doc, r, rows, prod, obra);
+
   doc.setFillColor(20, 45, 32);
   doc.rect(margin, y, pageWidth - margin * 2, 12, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(14);
   doc.setFont(undefined, "bold");
-  doc.text("Reporte mensual de hormigón", pageWidth / 2, y + 8, { align: "center" });
+  doc.text("Reporte mensual de hormigón - detalle de remitos", pageWidth / 2, y + 8, { align: "center" });
   y += 18;
 
   doc.setTextColor(20, 30, 20);
