@@ -443,3 +443,100 @@ async function plantaConfirmarImport() {
     plantaImport = null;
   }
 }
+
+/* ===========================================================
+   Planta pintada para la tarjeta diaria (PDF)
+   Dibuja la planta tipo de un nivel con los elementos hormigonados
+   ese día pintados de verde (como se marca a mano con resaltador).
+   Devuelve un PNG (data URL) o null si el plano no está disponible.
+   =========================================================== */
+function plantaRotulo(e) {
+  return e.id === "e_escnueva" ? "Esc. nueva" : e.tipo === "E" ? "Escalera" : e.tipo === "PA" ? e.codigo.split(" ")[0] + (e.id === "pa_esc" ? " núcleo" : e.id === "pa_esct" ? " pata" : "") : e.codigo;
+}
+
+// Agrupa las líneas del día por nivel y marca qué elementos del plano se llenaron.
+// Devuelve [{ niv, items: [{ e, m3 }] }] solo con los niveles de la torre que tienen elementos en el plano.
+function plantaElementosDelDia(lineas) {
+  const porNivel = new Map();
+  lineas.forEach((l) => {
+    const m = /^\s*N(\d{3})\b/i.exec(l.nomenclatura || "");
+    if (!m) return;
+    const niv = PLANTA_NIVELES.find((n) => n.nivel === parseInt(m[1], 10));
+    if (!niv) return;
+    const nom = plantaNorm(l.nomenclatura);
+    const e = plantaTodos(niv).find((x) => plantaNorm(plantaNomenclatura(x, niv)) === nom);
+    if (!e) return;
+    if (!porNivel.has(niv.nivel)) porNivel.set(niv.nivel, { niv, items: new Map() });
+    const it = porNivel.get(niv.nivel).items;
+    it.set(e.id, { e, m3: (it.get(e.id)?.m3 || 0) + (l.volumen || 0) });
+  });
+  return [...porNivel.values()]
+    .sort((a, b) => a.niv.nivel - b.niv.nivel)
+    .map((x) => ({ niv: x.niv, items: [...x.items.values()] }));
+}
+
+async function plantaImagenPintada(niv, items) {
+  const resp = await fetch("planta-tipo.svg");
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  const doc = new DOMParser().parseFromString(await resp.text(), "image/svg+xml");
+  const svg = doc.documentElement;
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 1700, H = Math.round(W * 520 / 535);
+  const rot = doc.createElementNS(NS, "g");
+  rot.setAttribute("transform", "rotate(-90)");
+  while (svg.firstChild) rot.appendChild(svg.firstChild);
+  svg.appendChild(rot);
+  svg.setAttribute("viewBox", "34 -568 535 520");
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  const bg = doc.createElementNS(NS, "rect");
+  bg.setAttribute("x", 34); bg.setAttribute("y", -568); bg.setAttribute("width", 535); bg.setAttribute("height", 520);
+  bg.setAttribute("fill", "#ffffff");
+  svg.insertBefore(bg, svg.firstChild);
+  const g = doc.createElementNS(NS, "g");
+  g.setAttribute("transform", `scale(${PLANTA_ESCALA})`);
+  rot.appendChild(g);
+  const llenos = new Set(items.map((x) => x.e.id));
+  const todos = plantaTodos(niv);
+  const path = (e, fill, stroke, sw) => {
+    const p = doc.createElementNS(NS, "path");
+    p.setAttribute("d", plantaPolys(e).map((pl) => "M" + pl.map((q) => q.join(",")).join(" L") + " Z").join(" "));
+    p.setAttribute("fill-rule", "evenodd");
+    p.setAttribute("fill", fill);
+    p.setAttribute("stroke", stroke);
+    p.setAttribute("stroke-width", sw);
+    g.appendChild(p);
+  };
+  // Primero lo que no se llenó (contorno rojo fino, como la planta para llenados) y arriba lo pintado.
+  todos.filter((e) => !llenos.has(e.id)).forEach((e) => path(e, "none", "#d33a3a", 1));
+  todos.filter((e) => llenos.has(e.id)).forEach((e) => path(e, e.tipo === "L" ? "rgba(124,230,40,0.45)" : "rgba(124,230,40,0.85)", "#2b2b2b", 1.5));
+  todos.forEach((e) => {
+    const pts = [].concat(...plantaPolys(e));
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const x = e.tipo === "P" || e.id === "pa_esc" ? Math.max(...xs) + 3 : cx;
+    const y = e.tipo === "P" ? cy : e.tipo === "L" ? cy + 40 : e.id === "pa_esc" ? cy + 30 : cy;
+    const t = doc.createElementNS(NS, "text");
+    t.textContent = plantaRotulo(e);
+    t.setAttribute("x", x); t.setAttribute("y", y);
+    t.setAttribute("transform", `rotate(90 ${x} ${y})`);
+    t.setAttribute("font-family", "Arial, Helvetica, sans-serif");
+    t.setAttribute("font-size", e.tipo === "L" ? 13 : 9);
+    t.setAttribute("font-weight", llenos.has(e.id) ? "700" : "400");
+    t.setAttribute("fill", llenos.has(e.id) ? "#111" : "#777");
+    t.setAttribute("text-anchor", e.tipo === "P" || e.id === "pa_esc" ? "start" : "middle");
+    t.setAttribute("dominant-baseline", "middle");
+    g.appendChild(t);
+  });
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
+  try {
+    const img = new Image();
+    await new Promise((ok, ko) => { img.onload = ok; img.onerror = () => ko(new Error("no se pudo dibujar la planta")); img.src = url; });
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(img, 0, 0, W, H);
+    return { url: c.toDataURL("image/jpeg", 0.88), w: W, h: H };
+  } finally { URL.revokeObjectURL(url); }
+}

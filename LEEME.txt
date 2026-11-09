@@ -1,5 +1,13 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.17.0
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.17.0
+- Tarjeta diaria (PDF): después de la tarjeta se agrega una hoja por cada nivel de la torre
+  hormigonado ese día, con la planta y los elementos llenados pintados de verde (como se
+  marca hoy a mano), la fecha y el listado con los m3. Sale de las líneas de remitos del día
+  (nomenclatura "N106 Pilar C05", "N107 Sector 2", etc.). Solo torre; el basamento no se dibuja.
+
 Versión 2.16.2
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.16.2

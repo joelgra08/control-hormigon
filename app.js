@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.16.2";
+const APP_VERSION = "2.17.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2845,7 +2845,7 @@ function fmtFechaArchivo(iso) {
   return (iso || todayISO()).replace(/-/g, ".");
 }
 
-function exportarTarjetaDiariaPDF() {
+async function exportarTarjetaDiariaPDF() {
   const obra = byId(state.obras, state.obraId);
   const rows = lineasDelDia(state.tarjetaFecha);
   if (rows.length === 0) return toast("No hay remitos ese día", "error");
@@ -2947,6 +2947,36 @@ function exportarTarjetaDiariaPDF() {
   doc.setFont(undefined, "bold");
   doc.setFontSize(9);
   doc.text(`Supervisor de Terreno${supervisor ? " " + supervisor : ""}`, margin, sigLineY + 5);
+
+  // Plantas de la torre con lo hormigonado ese día pintado (una hoja por nivel).
+  // Si el plano no está disponible, la tarjeta sale igual, sin plantas.
+  try {
+    if (typeof plantaDisponible === "function" && plantaDisponible()) {
+      for (const { niv, items } of plantaElementosDelDia(rows)) {
+        const img = await plantaImagenPintada(niv, items);
+        doc.addPage();
+        const w = pageWidth - margin * 2;
+        const h = w * img.h / img.w;
+        doc.setTextColor(20, 30, 20);
+        doc.setFont(undefined, "bold");
+        doc.setFontSize(13);
+        doc.text(`Planta para llenados - N${niv.nivel} (piso ${niv.piso})`, margin, 16);
+        doc.setFontSize(10);
+        doc.setFont(undefined, "normal");
+        doc.text(`Fecha: ${fmtFechaCorta(state.tarjetaFecha)}`, pageWidth - margin, 16, { align: "right" });
+        doc.addImage(img.url, "JPEG", margin, 22, w, h);
+        const total = items.reduce((a, x) => a + x.m3, 0);
+        const lista = items.map((x) => `${plantaRotulo(x.e)} ${fmtM3(x.m3)} m3`).join("  |  ");
+        doc.setFontSize(9);
+        doc.setFont(undefined, "bold");
+        doc.text(`Llenado ese día (${fmtM3(total)} m3):`, margin, 22 + h + 8);
+        doc.setFont(undefined, "normal");
+        doc.text(doc.splitTextToSize(lista, w), margin, 22 + h + 13);
+      }
+    }
+  } catch (err) {
+    console.warn("Plantas pintadas no incluidas en la tarjeta:", err);
+  }
 
   doc.save(`${fmtFechaArchivo(state.tarjetaFecha)} tarjeta diaria.pdf`);
 }
