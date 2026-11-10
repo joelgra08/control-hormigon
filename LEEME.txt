@@ -1,5 +1,14 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.21.0
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.21.0
+- Pilotaje: se mide aparte y ya NO entra en el acumulado ni en el avance de obra (los 11.368 m3).
+  Se detecta por elementos o cuadrillas cuyo nombre/código contiene "pilot". Aparece en un
+  recuadro propio (m3 acumulados y del mes) en el resumen mensual, el PDF y el Excel.
+- El avance de obra queda como un solo porcentaje total (se quitaron los separados de Torre y
+  Basamento).
+
 Versión 2.20.0
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.20.0

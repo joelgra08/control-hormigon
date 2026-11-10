@@ -5,7 +5,7 @@
    a los que se aplicó ese hormigón).
    =========================================================== */
 
-const APP_VERSION = "2.20.0";
+const APP_VERSION = "2.21.0";
 
 const state = {
   miPerfil: null, // { nombre, puesto, rol } de la persona logueada
@@ -2070,6 +2070,15 @@ function esLimpieza(linea) {
   return !!h && ((h.codigo || "").toUpperCase() === "HL" || /limpieza/i.test(h.nombre || h.resistencia || ""));
 }
 
+// Pilotaje: se mide aparte y NO forma parte de los 11.368 m3 de la obra (ni del avance ni del
+// acumulado). Se detecta por el elemento o la cuadrilla cuyo nombre/código/grupo contiene "pilot".
+function esPilotaje(linea) {
+  const elem = byId(state.catalogo.elementos, linea.elementoId);
+  const cuad = byId(state.catalogo.cuadrillas, linea.cuadrillaId);
+  const re = /pilot/i;
+  return !!((elem && (re.test(elem.nombre || "") || re.test(elem.codigo || "") || re.test(elem.tipoElemento || ""))) || (cuad && (re.test(cuad.nombre || "") || re.test(cuad.grupo || ""))));
+}
+
 function lineaConRemito(linea) {
   return { linea, remito: byId(state.remitos, linea.remitoId) };
 }
@@ -2295,7 +2304,14 @@ function calcularAvance(yyyyMm) {
     torre: { acum: ac.torre, mes: t, base: M3_TEORICO_TORRE },
     basamento: { acum: basAc, mes: b, base: M3_TEORICO_BASAMENTO },
     total: { acum: ac.torre + basAc, mes: t + b, base: M3_TEORICO_OBRA },
+    pilotaje: { acum: ac.pilotaje, mes: volumenPilotaje(rowsMes) },
   };
+}
+
+function volumenPilotaje(rows) {
+  let t = 0;
+  rows.forEach((l) => { if (!esDesperdicio(l) && !esPagaPorM2(l) && !esLimpieza(l) && esPilotaje(l)) t += l.volumen || 0; });
+  return t;
 }
 
 function calcularAcumulado(yyyyMm) {
@@ -2309,7 +2325,8 @@ function calcularAcumulado(yyyyMm) {
   const basGeneral = volumenPorGrupo(rows, "BASAMENTO");
   const basamento = basI + basII + basGeneral;
   const viga = volumenPorGrupo(rows, "VIGA_PERIMETRAL");
-  return { torre, basI, basII, basamento, viga, total: torre + basamento + viga };
+  const pilotaje = volumenPilotaje(rows);
+  return { torre, basI, basII, basamento, viga, pilotaje, total: torre + basamento + viga };
 }
 
 function calcularResumenMensual(rows) {
@@ -2385,7 +2402,7 @@ async function guardarPersonalMensual() {
 function volumenPorGrupo(rows, grupo) {
   let total = 0;
   rows.forEach((l) => {
-    if (esDesperdicio(l) || esPagaPorM2(l) || esLimpieza(l)) return;
+    if (esDesperdicio(l) || esPagaPorM2(l) || esLimpieza(l) || esPilotaje(l)) return;
     const cuad = byId(state.catalogo.cuadrillas, l.cuadrillaId);
     if (cuad && cuad.grupo === grupo) total += l.volumen || 0;
   });
@@ -2604,10 +2621,10 @@ function renderResumenMensual() {
   $("#ac_viga").textContent = fmtM3(ac.viga);
   $("#ac_total").textContent = fmtM3(ac.total);
   const av = calcularAvance(state.resumenMes);
-  [["Torre", av.torre], ["Bas", av.basamento], ["Total", av.total]].forEach(([k, a]) => {
-    $("#av" + k).textContent = fmtPctAv(a.acum, a.base);
-    $("#av" + k + "Det").textContent = `${fmtM3(a.acum)} de ${fmtM3(a.base)} m³ · este mes +${fmtPctAv(a.mes, a.base)}`;
-  });
+  $("#avTotal").textContent = fmtPctAv(av.total.acum, av.total.base);
+  $("#avTotalDet").textContent = `${fmtM3(av.total.acum)} de ${fmtM3(av.total.base)} m³ · este mes +${fmtPctAv(av.total.mes, av.total.base)}`;
+  $("#acPilotaje").textContent = fmtM3(av.pilotaje.acum);
+  $("#acPilotajeDet").textContent = `este mes ${fmtM3(av.pilotaje.mes)} m³`;
 
   const rend = (contId, obj, mantenerOrden) => {
     const cont = $(contId);
@@ -3109,8 +3126,8 @@ function dibujarPortadaReporte(doc, r, rows, prod, obra) {
   header("Avance de obra");
   const av = calcularAvance(state.resumenMes);
   txt(`Avance sobre los ${num0(M3_TEORICO_OBRA)} m3 teóricos de la obra`, M, 28, 14, C.gd, "bold");
-  [["Torre", av.torre], ["Basamento (I + II + Viga perimetral)", av.basamento], ["Total obra", av.total]].forEach(([n, a], i) => {
-    const yy = 38 + i * 16;
+  [["Avance total de obra", av.total]].forEach(([n, a], i) => {
+    const yy = 40 + i * 16;
     txt(n, M, yy, 10, [20, 30, 20], "bold");
     txt(`${fmtPctAv(a.acum, a.base)}   (${num0(a.acum)} de ${num0(a.base)} m3)   este mes +${fmtPctAv(a.mes, a.base)}`, PW - M, yy, 8.5, C.tx, "normal", "right");
     fill([230, 236, 232]); doc.rect(M, yy + 2, CW, 5, "F");
@@ -3118,8 +3135,13 @@ function dibujarPortadaReporte(doc, r, rows, prod, obra) {
     fill(C.g); doc.rect(M, yy + 2, CW * Math.min(prev, 1), 5, "F");
     fill(C.or); doc.rect(M + CW * Math.min(prev, 1), yy + 2, CW * Math.min(mes, 1 - Math.min(prev, 1)), 5, "F");
   });
-  fill(C.g); doc.rect(M, 84, 3, 3, "F"); txt("acumulado anterior", M + 5, 86.5, 7.5, C.gr);
-  fill(C.or); doc.rect(M + 40, 84, 3, 3, "F"); txt("aporte del mes", M + 45, 86.5, 7.5, C.gr);
+  fill(C.g); doc.rect(M, 54, 3, 3, "F"); txt("acumulado anterior", M + 5, 56.5, 7.5, C.gr);
+  fill(C.or); doc.rect(M + 40, 54, 3, 3, "F"); txt("aporte del mes", M + 45, 56.5, 7.5, C.gr);
+  // Pilotaje: aparte, no suma al avance
+  fill(C.bg); doc.setDrawColor(223, 230, 225); doc.roundedRect(M, 64, CW, 20, 2, 2, "FD");
+  txt("Pilotaje (aparte, no forma parte de los 11.368 m3)", M + 4, 72, 10, C.gd, "bold");
+  txt(`${fmtM3(av.pilotaje.acum)} m3 acumulados`, M + 4, 79, 11, C.bl, "bold");
+  txt(`este mes: ${fmtM3(av.pilotaje.mes)} m3`, PW - M - 4, 79, 9, C.tx, "normal", "right");
 
   // Evolución mensual
   txt("Hormigón colado por mes (barras) y % de avance acumulado (línea)", M, 98, 10, C.gd, "bold");
@@ -3270,7 +3292,7 @@ function exportarResumenMensualPDF() {
     const av = calcularAvance(state.resumenMes);
     y = doc.lastAutoTable.finalY + 6;
     doc.autoTable({ startY: y, head: [["Avance de obra", "Acumulado", "% acumulado", "Del mes"]], theme: "striped", styles: { fontSize: 8, cellPadding: 1.5 }, headStyles: { fillColor: [47, 107, 73], textColor: 255 }, margin: { left: margin, right: margin },
-      body: [["Torre", av.torre], ["Basamento (I + II + Viga perimetral)", av.basamento], ["Total obra", av.total]].map(([n, a]) => [n, `${fmtM3(a.acum)} de ${fmtM3(a.base)} m3`, fmtPctAv(a.acum, a.base), `+${fmtPctAv(a.mes, a.base)}`]) });
+      body: [["Total obra (sin pilotaje)", `${fmtM3(av.total.acum)} de ${fmtM3(av.total.base)} m3`, fmtPctAv(av.total.acum, av.total.base), `+${fmtPctAv(av.total.mes, av.total.base)}`], ["Pilotaje (aparte)", `${fmtM3(av.pilotaje.acum)} m3`, "-", `${fmtM3(av.pilotaje.mes)} m3`]] });
   }
   y = doc.lastAutoTable.finalY + 8;
   if (y > 230) { doc.addPage(); y = margin; }
@@ -3396,7 +3418,7 @@ function exportarResumenMensualExcel() {
     ["Total (Torre + Basamento + Viga)", calcularAcumulado(state.resumenMes).total],
     [],
     ["Avance de obra", "m3 acumulados", "m3 teóricos", "% acumulado", "m3 del mes", "% del mes"],
-    ...(() => { const av = calcularAvance(state.resumenMes); return [["Torre", av.torre], ["Basamento (I + II + Viga perimetral)", av.basamento], ["Total obra", av.total]].map(([n, a]) => [n, a.acum, a.base, a.base ? a.acum / a.base : 0, a.mes, a.base ? a.mes / a.base : 0]); })(),
+    ...(() => { const av = calcularAvance(state.resumenMes); const a = av.total; return [["Total obra (sin pilotaje)", a.acum, a.base, a.base ? a.acum / a.base : 0, a.mes, a.base ? a.mes / a.base : 0], ["Pilotaje (aparte)", av.pilotaje.acum, "", "", av.pilotaje.mes, ""]]; })(),
     [],
     ["M3 por tipo de hormigón"],
     ...ordenarTiposHormigon(r.porHormigon),
