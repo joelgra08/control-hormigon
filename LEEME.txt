@@ -1,5 +1,13 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.22.0
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.22.0
+- Plan del día: al guardar los remitos se numeran las probetas automáticamente (3 correlativas
+  por remito, con el contador "próxima probeta" de la obra, igual que la pestaña Remitos).
+  Hay una casilla "Numerar probetas automáticamente" (tildada por defecto) para desactivarlo.
+  Si la obra no tiene "próxima probeta" cargada, los remitos se guardan sin probetas.
+
 Versión 2.21.0
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.21.0

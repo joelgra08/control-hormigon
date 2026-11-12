@@ -864,6 +864,10 @@ async function planGuardarRemitos() {
   if (duplicados.length) return toast(`Ya existen remitos con N° ${duplicados.join(", ")} para este proveedor. Quitá esos del formulario y volvé a guardar.`, "error");
 
   const remitosDb = [], lineasDb = [];
+  // Probetas correlativas (3 por remito) con el contador de la obra, igual que la pestaña Remitos.
+  const obraP = state.obras.find((o) => o.id === state.obraId);
+  const autoProbetas = !!($("#chkPlanProbetas") && $("#chkPlanProbetas").checked) && !!(obraP && obraP.proximaProbeta);
+  let probSig = autoProbetas ? obraP.proximaProbeta : null;
   for (const r of pv.remitos) {
     const horm = state.catalogo.hormigones.find((h) => h.codigo === r.hormigon);
     if (!horm) return toast(`No encuentro el hormigón ${r.hormigon} en Referencias`, "error");
@@ -871,8 +875,10 @@ async function planGuardarRemitos() {
     remitosDb.push({
       id: remitoId, obraId: state.obraId, fecha: pv.fecha, proveedorId: r.proveedorId, hormigonId: horm.id,
       remitoNro: r.nro, m3Remito: r.m3, unidadMovil: "", horaAObra: r.horaAObra || "", horaEnObra: "",
-      horaDescarga: r.horaDescarga || "", horaFinDescarga: "", probeta1: null, probeta2: null, probeta3: null,
+      horaDescarga: r.horaDescarga || "", horaFinDescarga: "",
+      probeta1: autoProbetas ? probSig : null, probeta2: autoProbetas ? probSig + 1 : null, probeta3: autoProbetas ? probSig + 2 : null,
     });
+    if (autoProbetas) probSig += 3;
     r.lineas.filter((l) => (planNum(l.m3) || 0) > 0).forEach((l) => {
       const p = plan.find((x) => x.id === l.planId);
       lineasDb.push({
@@ -895,6 +901,7 @@ async function planGuardarRemitos() {
   try {
     await DB.bulkPut("remitos", remitosDb);
     await DB.bulkPut("remitoLineas", lineasDb);
+    if (autoProbetas && probSig !== obraP.proximaProbeta) { obraP.proximaProbeta = probSig; await DB.put("obras", obraP); }
     const usadas = new Set();
     pv.remitos.forEach((r) => r.lineas.forEach((l) => { if (l.planId) usadas.add(l.planId); }));
     const marcadas = plan.filter((p) => usadas.has(p.id)).map((p) => ({ ...p, cargado: true }));
