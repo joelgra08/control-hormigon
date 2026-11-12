@@ -619,6 +619,41 @@ function planFilaRemitoVacia() {
   return { nro: "", hormigon: ultimo ? ultimo.hormigon : (hs[hs.length - 1]?.codigo || ""), m3: "", asentamiento: "", horaAObra: "", horaDescarga: "", proveedorId: planProveedorDefault(ultimo) };
 }
 
+// ---- Probetas en la carga del Plan ----
+// La numeración automática sigue a la última probeta cargada en los remitos (la mayor); si todavía
+// no hay ninguna, usa el contador "próxima probeta" de la obra. Cada remito lleva 3 correlativas,
+// salvo los que se dejan en blanco (ej.: un remito para una vereda) y los que se tipean a mano.
+function planProbetaBase() {
+  const nums = [];
+  (state.remitos || []).forEach((r) => [r.probeta1, r.probeta2, r.probeta3].forEach((n) => { if (n !== null && n !== undefined && n !== "" && !isNaN(n)) nums.push(Number(n)); }));
+  if (nums.length) return Math.max(...nums) + 1;
+  const obra = state.obras.find((o) => o.id === state.obraId);
+  return obra && obra.proximaProbeta ? obra.proximaProbeta : null;
+}
+
+function planAutoProbetasActivo() { const c = $("#chkPlanProbetas"); return !!(c && c.checked); }
+
+function planRenumerarProbetas() {
+  if (!planAutoProbetasActivo()) return;
+  let cur = planProbetaBase();
+  if (cur === null) return;
+  const orden = planUI.remitos.map((r, i) => ({ r, i })).filter((x) => x.r.nro || x.r.m3)
+    .sort((a, b) => { const ha = a.r.horaDescarga || a.r.horaAObra || "99:99", hb = b.r.horaDescarga || b.r.horaAObra || "99:99"; return ha < hb ? -1 : ha > hb ? 1 : a.i - b.i; });
+  orden.forEach(({ r }) => {
+    if (r.pSin) { r.p1 = r.p2 = r.p3 = ""; return; }
+    if (r.pManual) {
+      const n = [r.p1, r.p2, r.p3].map((v) => parseInt(v, 10)).filter((v) => !isNaN(v));
+      if (n.length) cur = Math.max(...n) + 1;
+      return;
+    }
+    r.p1 = String(cur); r.p2 = String(cur + 1); r.p3 = String(cur + 2); cur += 3;
+  });
+  planUI.remitos.forEach((r, i) => ["p1", "p2", "p3"].forEach((k) => {
+    const e = document.querySelector(`#tablaPlanRemitos input[data-pi="${i}"][data-pk="${k}"]`);
+    if (e && e.value !== (r[k] ?? "")) e.value = r[k] ?? "";
+  }));
+}
+
 function renderPlanRemitosForm() {
   const tbody = $("#tablaPlanRemitos tbody");
   tbody.innerHTML = "";
@@ -655,8 +690,21 @@ function renderPlanRemitosForm() {
     tr.appendChild(el("td", {}, sel));
     tr.appendChild(inp("m3", "text", "70px", { placeholder: "m³", inputmode: "decimal" }));
     tr.appendChild(inp("asentamiento", "text", "60px", { placeholder: "cm", inputmode: "decimal" }));
-    tr.appendChild(inp("horaAObra", "time", "110px"));
-    tr.appendChild(inp("horaDescarga", "time", "110px"));
+    const inpHora = (campo) => { const t = inp(campo, "time", "110px"); t.firstChild.addEventListener("input", () => planRenumerarProbetas()); return t; };
+    tr.appendChild(inpHora("horaAObra"));
+    tr.appendChild(inpHora("horaDescarga"));
+    const tdP = el("td", { style: "white-space:nowrap" });
+    ["p1", "p2", "p3"].forEach((k) => {
+      const pi = el("input", { type: "number", value: r[k] ?? "", style: "width:62px", placeholder: "-", "data-pi": String(i), "data-pk": k, title: "Dejalo vacío si este remito no lleva probetas" });
+      pi.addEventListener("input", () => {
+        r[k] = pi.value;
+        const hay = ["p1", "p2", "p3"].some((x) => (r[x] ?? "") !== "");
+        r.pManual = hay; r.pSin = !hay;
+        planRenumerarProbetas();
+      });
+      tdP.appendChild(pi);
+    });
+    tr.appendChild(tdP);
     const chk = el("input", { type: "checkbox", style: "width:auto", title: "El remito se descargó con bomba" });
     chk.checked = !!r.bombeo;
     chk.addEventListener("change", () => { r.bombeo = chk.checked; });
@@ -666,6 +714,7 @@ function renderPlanRemitosForm() {
     tr.appendChild(el("td", {}, b));
     tbody.appendChild(tr);
   });
+  planRenumerarProbetas();
   const filas = planUI.remitos.filter((r) => planNum(r.m3));
   const total = filas.reduce((a, r) => a + planNum(r.m3), 0);
   $("#planRemitosTotal").textContent = filas.length ? `${filas.length} remito(s) — ${fmtM3(total)} m³` : "";
@@ -715,7 +764,7 @@ function planCalcular() {
     if (!r.horaDescarga) errores.push(`Remito ${nro || i + 1}: falta la hora de descarga`);
     const asent = planNum(r.asentamiento);
     if (asent === null || asent <= 0) errores.push(`Remito ${nro || i + 1}: falta el asentamiento (cm)`);
-    return { id: `pr${i}`, proveedorId: r.proveedorId, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), asentamiento: asent, horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo };
+    return { id: `pr${i}`, proveedorId: r.proveedorId, nro, hormigon: r.hormigon, m3: planR2(m3 || 0), asentamiento: asent, horaAObra: r.horaAObra, horaDescarga: r.horaDescarga, bombeo: !!r.bombeo, p1: r.p1 ?? "", p2: r.p2 ?? "", p3: r.p3 ?? "" };
   });
   if (!planElementoDesperdicio()) errores.push('No hay un elemento "Desperdicio" en Referencias → Elementos');
   if (errores.length) return toast(errores.slice(0, 3).join(" · "), "error");
@@ -866,8 +915,8 @@ async function planGuardarRemitos() {
   const remitosDb = [], lineasDb = [];
   // Probetas correlativas (3 por remito) con el contador de la obra, igual que la pestaña Remitos.
   const obraP = state.obras.find((o) => o.id === state.obraId);
-  const autoProbetas = !!($("#chkPlanProbetas") && $("#chkPlanProbetas").checked) && !!(obraP && obraP.proximaProbeta);
-  let probSig = autoProbetas ? obraP.proximaProbeta : null;
+  let maxProb = 0;
+  const pint = (v) => { const n = parseInt(v, 10); return isNaN(n) ? null : n; };
   for (const r of pv.remitos) {
     const horm = state.catalogo.hormigones.find((h) => h.codigo === r.hormigon);
     if (!horm) return toast(`No encuentro el hormigón ${r.hormigon} en Referencias`, "error");
@@ -876,9 +925,9 @@ async function planGuardarRemitos() {
       id: remitoId, obraId: state.obraId, fecha: pv.fecha, proveedorId: r.proveedorId, hormigonId: horm.id,
       remitoNro: r.nro, m3Remito: r.m3, unidadMovil: "", horaAObra: r.horaAObra || "", horaEnObra: "",
       horaDescarga: r.horaDescarga || "", horaFinDescarga: "",
-      probeta1: autoProbetas ? probSig : null, probeta2: autoProbetas ? probSig + 1 : null, probeta3: autoProbetas ? probSig + 2 : null,
+      probeta1: pint(r.p1), probeta2: pint(r.p2), probeta3: pint(r.p3),
     });
-    if (autoProbetas) probSig += 3;
+    [r.p1, r.p2, r.p3].map(pint).forEach((n) => { if (n !== null && n > maxProb) maxProb = n; });
     r.lineas.filter((l) => (planNum(l.m3) || 0) > 0).forEach((l) => {
       const p = plan.find((x) => x.id === l.planId);
       lineasDb.push({
@@ -901,7 +950,7 @@ async function planGuardarRemitos() {
   try {
     await DB.bulkPut("remitos", remitosDb);
     await DB.bulkPut("remitoLineas", lineasDb);
-    if (autoProbetas && probSig !== obraP.proximaProbeta) { obraP.proximaProbeta = probSig; await DB.put("obras", obraP); }
+    if (obraP && maxProb && maxProb + 1 > (obraP.proximaProbeta || 0)) { obraP.proximaProbeta = maxProb + 1; await DB.put("obras", obraP); }
     const usadas = new Set();
     pv.remitos.forEach((r) => r.lineas.forEach((l) => { if (l.planId) usadas.add(l.planId); }));
     const marcadas = plan.filter((p) => usadas.has(p.id)).map((p) => ({ ...p, cargado: true }));
@@ -967,6 +1016,12 @@ function bindPlanDiaHandlers() {
   $("#btnPlanModelo").addEventListener("click", planDescargarModelo);
   $("#btnPlanVaciar").addEventListener("click", planVaciarDia);
   $("#btnPlanGuardarPre").addEventListener("click", planGuardarPrecargados);
+  $("#chkPlanProbetas").addEventListener("change", () => {
+    if (!planAutoProbetasActivo()) return;
+    planUI.remitos.forEach((r) => { if (!r.pManual) r.pSin = false; });
+    if (planProbetaBase() === null) toast("Todavía no hay probetas cargadas: tipeá la primera a mano y después numera el resto", "info");
+    planRenumerarProbetas();
+  });
   $("#btnPlanMasRemito").addEventListener("click", () => { planUI.remitos.push(planFilaRemitoVacia()); renderPlanRemitosForm(); });
   $("#btnPlanPegar").addEventListener("click", planPegarRemitos);
   $("#btnPlanCalcular").addEventListener("click", planCalcular);

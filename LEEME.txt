@@ -1,5 +1,15 @@
 CONTROL DE HORMIGÓN — App en la nube (multiusuario)
 ==============================================
+Versión 2.23.0
+
+QUÉ CAMBIÓ EN LA VERSIÓN 2.23.0
+- Plan del día, "Remitos del día": nueva columna "Probetas (1 · 2 · 3)" en cada remito.
+  Con "Numerar probetas automáticamente" tildada se numeran 3 correlativas por remito, a partir
+  de la última probeta cargada en los remitos (la mayor; si no hay ninguna, el contador de la
+  obra), en el orden de la hora de descarga. Se pueden tipear a mano, y un remito que no lleva
+  probetas (ej.: una vereda) se deja en blanco y el resto se corre solo. Ya no hace falta
+  tener cargada la "próxima probeta" de la obra.
+
 Versión 2.22.0
 
 QUÉ CAMBIÓ EN LA VERSIÓN 2.22.0
